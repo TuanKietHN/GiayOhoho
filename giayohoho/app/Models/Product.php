@@ -47,4 +47,14 @@ class Product extends Model
         // bảng nối: product_surfaces (product_id, surface_id)
         return $this->belongsToMany(Surface::class, 'product_surfaces', 'product_id', 'surface_id');
     }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'product_id');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'product_tags', 'product_id', 'tag_id');
+    }
 }
