@@ -1,18 +1,23 @@
 import React, { useState } from 'react'
 import api from '../api'
+import { useToast } from '../ui/toast'
 
 export default function Checkout() {
   const [order_address, setAddr] = useState('')
   const [payment_method, setPay] = useState('COD')
   const [msg, setMsg] = useState('')
+  const toast = useToast()
 
   const place = async () => {
     setMsg('')
     try {
       const res = await api.post('/auth/checkout', { order_address, payment_method })
       setMsg('Đã đặt hàng #' + res.data.id)
+      toast?.show('Đặt hàng thành công', 'success')
     } catch (e) {
-      setMsg('Đặt hàng thất bại')
+      const m = e?.response?.data?.message || 'Đặt hàng thất bại'
+      setMsg(m)
+      toast?.show(m, 'error')
     }
   }
 
@@ -30,4 +35,3 @@ export default function Checkout() {
     </div>
   )
 }
-

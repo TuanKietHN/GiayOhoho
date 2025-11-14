@@ -21,7 +21,8 @@ export default function Login() {
       localStorage.setItem("token", res.data.token)
       const me = await api.get("/auth/me")
       localStorage.setItem("user_email", me.data.email || "")
-      nav("/")
+      const isAdmin = (me.data.roles || []).some(r => r.name === "admin")
+      window.location.href = isAdmin ? "/admin" : "/"
     } catch (e) {
       setError("Email hoặc mật khẩu không chính xác. Vui lòng thử lại.")
     } finally {

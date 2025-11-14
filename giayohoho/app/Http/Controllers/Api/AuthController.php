@@ -14,20 +14,21 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'nullable|string|max:255',
-            'username'   => 'required|string|max:255|unique:users,username',
+            'first_name' => ['required','string','max:255','regex:/^[\p{L}\s\'.-]+$/u'],
+            'last_name'  => ['nullable','string','max:255','regex:/^[\p{L}\s\'.-]+$/u'],
+            'username'   => ['required','string','max:255','regex:/^[A-Za-z0-9_.-]+$/','unique:users,username'],
             'email'      => 'required|email|max:255|unique:users,email',
-            'password'   => 'required|string|min:6|confirmed', // password_confirmation
-            'phone_number' => 'nullable|string|max:20',
+            'password'   => 'required|string|min:6|confirmed',
+            'phone_number' => ['nullable','string','max:20','regex:/^[0-9+()\s-]{6,20}$/'],
             'birth_of_date' => 'nullable|date',
         ]);
 
         $user = User::create([
-            'first_name'    => $data['first_name'],
-            'last_name'     => $data['last_name'] ?? null,
-            'username'      => $data['username'],
-            'email'         => $data['email'],
+            'name'          => trim(strip_tags(($data['first_name'].' '.($data['last_name'] ?? '')))),
+            'first_name'    => trim(strip_tags($data['first_name'])),
+            'last_name'     => isset($data['last_name']) ? trim(strip_tags($data['last_name'])) : null,
+            'username'      => trim($data['username']),
+            'email'         => strtolower(trim($data['email'])),
             'password'      => Hash::make($data['password']),
             'phone_number'  => $data['phone_number'] ?? null,
             'birth_of_date' => $data['birth_of_date'] ?? null,
@@ -87,6 +88,6 @@ class AuthController extends Controller
     // GET /api/auth/me
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($request->user()->load('roles'));
     }
 }

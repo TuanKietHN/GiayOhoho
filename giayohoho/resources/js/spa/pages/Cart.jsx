@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useToast } from '../ui/toast.jsx'
 
 export default function Cart() {
   const [cart, setCart] = useState(null)
   const [code, setCode] = useState('')
   const nav = useNavigate()
 
+  const toast = useToast()
   const load = async () => {
     const res = await api.get('/auth/cart')
     setCart(res.data)
@@ -17,16 +19,23 @@ export default function Cart() {
   const updateQty = async (id, quantity) => {
     await api.put(`/auth/cart/items/${id}`, { quantity })
     load()
+    toast?.show('Đã cập nhật số lượng', 'success')
   }
 
   const removeItem = async (id) => {
     await api.delete(`/auth/cart/items/${id}`)
     load()
+    toast?.show('Đã xoá sản phẩm khỏi giỏ', 'success')
   }
 
   const apply = async () => {
-    await api.post('/auth/cart/apply-coupon', { code })
-    load()
+    try {
+      await api.post('/auth/cart/apply-coupon', { code })
+      load()
+      toast?.show('Đã áp dụng mã giảm giá', 'success')
+    } catch (e) {
+      toast?.show('Mã giảm giá không hợp lệ', 'error')
+    }
   }
 
   if (!cart) return <p>Đang tải...</p>
@@ -55,4 +64,3 @@ export default function Cart() {
     </div>
   )
 }
-

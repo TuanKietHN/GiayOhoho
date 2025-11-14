@@ -1,0 +1,34 @@
+{
+  "info": {
+    "name": "GiayOhoho API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "giayohoho-collection"
+  },
+  "item": [
+    {"name": "Health", "request": {"method": "GET", "url": "{{base_url}}/api/health"}},
+    {"name": "Auth Register", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/register", "body": {"mode":"raw", "raw": "{\n  \"first_name\": \"Customer\",\n  \"username\": \"customer\",\n  \"email\": \"customer@example.com\",\n  \"password\": \"Customer@123\",\n  \"password_confirmation\": \"Customer@123\"\n}"}}},
+    {"name": "Auth Login", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/login", "body": {"mode":"raw", "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"Customer@123\"\n}"}}},
+    {"name": "Auth Me", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": "{{base_url}}/api/auth/me"}},
+    {"name": "Products List", "request": {"method": "GET", "url": "{{base_url}}/api/products"}},
+    {"name": "Product Detail", "request": {"method": "GET", "url": "{{base_url}}/api/products/1"}},
+    {"name": "Product Reviews", "request": {"method": "GET", "url": "{{base_url}}/api/products/1/reviews"}},
+    {"name": "Similar Products", "request": {"method": "GET", "url": "{{base_url}}/api/products/1/similar"}},
+    {"name": "Wishlist List", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": "{{base_url}}/api/auth/wishlist"}},
+    {"name": "Wishlist Add", "request": {"method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/wishlist", "body": {"mode":"raw", "raw": "{\n  \"product_id\": 1\n}"}}},
+    {"name": "Cart Get", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": "{{base_url}}/api/auth/cart"}},
+    {"name": "Cart Add Item", "request": {"method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/cart/items", "body": {"mode":"raw", "raw": "{\n  \"product_variant_id\": 1,\n  \"quantity\": 1\n}"}}},
+    {"name": "Apply Coupon", "request": {"method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/cart/apply-coupon", "body": {"mode":"raw", "raw": "{\n  \"code\": \"WELCOME10\"\n}"}}},
+    {"name": "Checkout", "request": {"method": "POST", "header": [{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}], "url": "{{base_url}}/api/auth/checkout", "body": {"mode":"raw", "raw": "{\n  \"order_address\": \"123 Đường ABC, Quận 1, TP.HCM\",\n  \"payment_method\": \"COD\"\n}"}}},
+    {"name": "Orders List", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{token}}"}], "url": "{{base_url}}/api/auth/orders"}},
+    {"name": "Admin Users", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{admin_token}}"}], "url": "{{base_url}}/api/admin/users"}},
+    {"name": "Admin Orders", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{admin_token}}"}], "url": "{{base_url}}/api/admin/orders"}},
+    {"name": "Admin Products", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{admin_token}}"}], "url": "{{base_url}}/api/admin/products"}},
+    {"name": "Admin Categories", "request": {"method": "GET", "header": [{"key":"Authorization","value":"Bearer {{admin_token}}"}], "url": "{{base_url}}/api/admin/categories"}}
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000"},
+    {"key": "token", "value": ""},
+    {"key": "admin_token", "value": ""}
+  ]
+}
+

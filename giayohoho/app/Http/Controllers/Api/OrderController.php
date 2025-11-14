@@ -63,7 +63,7 @@ class OrderController extends Controller
         $total = max(0, $sub - $discount);
 
         $orderAddress = $data['order_address'] ?? null;
-        if ($data['address_id']) {
+        if (isset($data['address_id']) && $data['address_id']) {
             $orderAddress = $request->user()->addresses()->find($data['address_id'])?->address_line;
         }
 

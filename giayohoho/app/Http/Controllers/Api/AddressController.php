@@ -17,12 +17,12 @@ class AddressController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'address_line' => 'required|string|max:255',
-            'ward' => 'nullable|string|max:255',
-            'district' => 'nullable|string|max:255',
-            'city' => 'required|string|max:100',
-            'country' => 'required|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
+            'address_line' => ['required','string','max:255','regex:/^[\p{L}0-9\s,\.-]+$/u'],
+            'ward' => ['nullable','string','max:255','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'district' => ['nullable','string','max:255','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'city' => ['required','string','max:100','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'country' => ['required','string','max:100','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'postal_code' => ['nullable','string','max:20','regex:/^[A-Za-z0-9\s-]+$/'],
         ]);
         $data['user_id'] = $request->user()->id;
         $address = Address::create($data);
@@ -33,12 +33,12 @@ class AddressController extends Controller
     {
         $address = Address::where('user_id', $request->user()->id)->findOrFail($id);
         $data = $request->validate([
-            'address_line' => 'sometimes|required|string|max:255',
-            'ward' => 'nullable|string|max:255',
-            'district' => 'nullable|string|max:255',
-            'city' => 'sometimes|required|string|max:100',
-            'country' => 'sometimes|required|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
+            'address_line' => ['sometimes','required','string','max:255','regex:/^[\p{L}0-9\s,\.-]+$/u'],
+            'ward' => ['nullable','string','max:255','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'district' => ['nullable','string','max:255','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'city' => ['sometimes','required','string','max:100','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'country' => ['sometimes','required','string','max:100','regex:/^[\p{L}0-9\s\.-]+$/u'],
+            'postal_code' => ['nullable','string','max:20','regex:/^[A-Za-z0-9\s-]+$/'],
         ]);
         $address->update($data);
         return response()->json($address);
@@ -51,4 +51,3 @@ class AddressController extends Controller
         return response()->json(['message' => 'deleted']);
     }
 }
-

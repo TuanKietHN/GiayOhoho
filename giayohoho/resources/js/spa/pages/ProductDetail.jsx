@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import api from "../api"
+import { useToast } from "../ui/toast.jsx"
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -15,6 +16,7 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [me, setMe] = useState(null)
+  const toast = useToast()
 
   useEffect(() => {
     api.get(`/products/${id}`).then((res) => setP(res.data))
@@ -28,23 +30,23 @@ export default function ProductDetail() {
 
   const addToCart = async () => {
     if (!variantId) {
-      alert("Vui lòng chọn biến thể")
+      toast?.show("Vui lòng chọn biến thể", "error")
       return
     }
     try {
       await api.post("/auth/cart/items", { product_variant_id: Number(variantId), quantity: Number(qty) })
-      alert("Đã thêm vào giỏ")
+      toast?.show("Đã thêm vào giỏ", "success")
     } catch {
-      alert("Vui lòng đăng nhập trước")
+      toast?.show("Vui lòng đăng nhập trước", "error")
     }
   }
 
   const addToWishlist = async () => {
     try {
       await api.post("/auth/wishlist", { product_id: Number(id) })
-      alert("Đã thêm vào yêu thích")
+      toast?.show("Đã thêm vào yêu thích", "success")
     } catch {
-      alert("Vui lòng đăng nhập trước")
+      toast?.show("Vui lòng đăng nhập trước", "error")
     }
   }
 
@@ -55,9 +57,9 @@ export default function ProductDetail() {
       setReviews(res.data)
       setComment("")
       setRating(5)
-      alert("Cảm ơn bạn đã đánh giá")
+      toast?.show("Cảm ơn bạn đã đánh giá", "success")
     } catch (e) {
-      alert("Vui lòng đăng nhập trước")
+      toast?.show("Vui lòng đăng nhập trước", "error")
     }
   }
 
@@ -66,8 +68,9 @@ export default function ProductDetail() {
       await api.delete(`/auth/reviews/${rid}`)
       const res = await api.get(`/products/${id}/reviews`)
       setReviews(res.data)
+      toast?.show("Đã xoá review", "success")
     } catch {
-      alert("Xoá thất bại")
+      toast?.show("Xoá thất bại", "error")
     }
   }
 
