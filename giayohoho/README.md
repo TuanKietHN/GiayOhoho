@@ -11,7 +11,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
 
 <p align="center">
-  <img src="app-gif.gif" alt="Demo" width="600"/>
+  <img src="../app-gif.gif" alt="Demo" width="600"/>
 </p>
 
 **GiayOhoho** là một ứng dụng web full-stack hiện đại cho việc mua bán giày thể thao trực tuyến, được xây dựng với Laravel API backend và React SPA frontend.
