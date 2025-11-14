@@ -1,0 +1,56 @@
+ 
+GiayOhoho E-commerce Platform
+Copyright 2025 Truong Tuan Kiet
+
+This product includes software developed at
+TLU/Truong Tuan Kiet (https://github.com/TuanKietHN/GiayOhoho).
+
+========================================
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+========================================
+
+This project incorporates components from the projects listed below. 
+The original copyright notices and the licenses under which we received such components 
+are set forth below for informational purposes only.
+
+----------------------------------------
+Laravel Framework
+----------------------------------------
+Copyright (c) Taylor Otwell
+License: MIT License
+https://github.com/laravel/framework
+
+----------------------------------------
+React
+----------------------------------------
+Copyright (c) Meta Platforms, Inc. and affiliates
+License: MIT License
+https://github.com/facebook/react
+
+----------------------------------------
+Vite
+----------------------------------------
+Copyright (c) 2019-present, Yuxi (Evan) You and Vite contributors
+License: MIT License
+https://github.com/vitejs/vite
+
+----------------------------------------
+React Router
+----------------------------------------
+Copyright (c) Remix Software Inc.
+License: MIT License
+https://github.com/remix-run/react-router
+
+----------------------------------------
+Axios
+----------------------------------------
+Copyright (c) 2014-present Matt Zabriskie
+License: MIT License
+https://github.com/axios/axios
+
+========================================
+
+For the full text of the licenses, please see the respective project repositories.
+
+If you have any questions about these licenses, please contact:
+[2251172400@e.tlu.edu.vn]
