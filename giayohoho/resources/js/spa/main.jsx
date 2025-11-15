@@ -22,6 +22,11 @@ import AdminReviews from "./pages/admin/AdminReviews"
 import { ToastProvider } from "./ui/toast.jsx"
 import api from "./api"
 import "../../css/styles.css"
+import AppTheme from "./ui/theme.jsx"
+import AppBar from "@mui/material/AppBar"
+import Toolbar from "@mui/material/Toolbar"
+import Button from "@mui/material/Button"
+import Container from "@mui/material/Container"
 
 function Nav({ me }) {
   const token = localStorage.getItem("token")
@@ -36,84 +41,27 @@ function Nav({ me }) {
   }
 
   return (
-    <nav
-      style={{
-        backgroundColor: "var(--primary-dark)",
-        color: "var(--neutral-white)",
-        padding: "var(--spacing-md) 0",
-        boxShadow: "var(--shadow-md)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          padding: "0 var(--spacing-md)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Link
-          to="/"
-          style={{
-            fontSize: "1.5rem",
-            fontWeight: 700,
-            fontFamily: "var(--font-display)",
-            color: "var(--neutral-white)",
-            textDecoration: "none",
-          }}
-        >
-          GiàyOhoho
-        </Link>
-
-        {/* Desktop Menu */}
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--spacing-lg)",
-            alignItems: "center",
-          }}
-        >
-          <Link to="/" style={{ color: "var(--neutral-white)" }}>
-            Sản phẩm
-          </Link>
-          <Link to="/cart" style={{ color: "var(--neutral-white)" }}>
-            Giỏ hàng
-          </Link>
-          <Link to="/orders" style={{ color: "var(--neutral-white)" }}>
-            Đơn hàng
-          </Link>
-          <Link to="/wishlist" style={{ color: "var(--neutral-white)" }}>
-            Yêu thích
-          </Link>
-          {me?.roles?.some((r) => r.name === "admin") && (
-            <Link to="/admin" style={{ color: "var(--neutral-white)" }}>
-              Admin
-            </Link>
-          )}
-
-          {me ? (
-            <button
-              onClick={logout}
-              className="btn-secondary"
-              style={{ padding: "var(--spacing-sm) var(--spacing-md)" }}
-            >
-              Đăng xuất
-            </button>
-          ) : (
-            <>
-              <Link to="/login" style={{ color: "var(--neutral-white)" }}>
-                Đăng nhập
-              </Link>
-              <Link to="/register" className="btn-primary" style={{ padding: "var(--spacing-sm) var(--spacing-md)" }}>
-                Đăng ký
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </nav>
+    <AppBar position="static">
+      <Toolbar>
+        <Button color="inherit" component={Link} to="/">GiàyOhoho</Button>
+        <div style={{ flex: 1 }} />
+        <Button color="inherit" component={Link} to="/">Sản phẩm</Button>
+        <Button color="inherit" component={Link} to="/cart">Giỏ hàng</Button>
+        <Button color="inherit" component={Link} to="/orders">Đơn hàng</Button>
+        <Button color="inherit" component={Link} to="/wishlist">Yêu thích</Button>
+        {me?.roles?.some((r) => r.name === "admin") && (
+          <Button color="inherit" component={Link} to="/admin">Admin</Button>
+        )}
+        {me ? (
+          <Button color="inherit" onClick={logout}>Đăng xuất</Button>
+        ) : (
+          <>
+            <Button color="inherit" component={Link} to="/login">Đăng nhập</Button>
+            <Button color="inherit" component={Link} to="/register">Đăng ký</Button>
+          </>
+        )}
+      </Toolbar>
+    </AppBar>
   )
 }
 
@@ -137,11 +85,12 @@ function App() {
       .finally(() => setMeLoading(false))
   }, [])
   return (
+    <AppTheme>
     <ToastProvider>
       <BrowserRouter>
         <Nav me={me} />
-        <main style={{ minHeight: "100vh", backgroundColor: "var(--neutral-light)" }}>
-          <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "var(--spacing-2xl) var(--spacing-md)" }}>
+        <main style={{ minHeight: "100vh" }}>
+          <Container maxWidth="lg" sx={{ py: 4 }}>
             <Routes>
               <Route path="/" element={<Products />} />
               <Route path="/products/:id" element={<ProductDetail />} />
@@ -161,26 +110,12 @@ function App() {
               <Route path="/admin/reviews" element={<AdminRoute me={me} loading={meLoading}><AdminReviews /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </div>
+          </Container>
         </main>
-        <footer
-          style={{
-            backgroundColor: "var(--primary-dark)",
-            color: "var(--neutral-white)",
-            padding: "var(--spacing-2xl) var(--spacing-md)",
-            textAlign: "center",
-            marginTop: "var(--spacing-2xl)",
-            borderTop: `1px solid var(--neutral-gray)`,
-          }}
-        >
-          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-            <p style={{ color: "var(--neutral-white)" }}>
-              © 2025 GiàyOhoho - Giày chất lượng cao. Tous les droits réservés.
-            </p>
-          </div>
-        </footer>
+        <footer style={{ padding: 16, textAlign: 'center' }}>© 2025 GiàyOhoho</footer>
       </BrowserRouter>
     </ToastProvider>
+    </AppTheme>
   )
 }
 

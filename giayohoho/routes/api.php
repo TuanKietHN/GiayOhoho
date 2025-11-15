@@ -80,6 +80,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::post('/products', [AdminProductController::class, 'store']);
     Route::put('/products/{id}', [AdminProductController::class, 'update']);
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy']);
+    Route::post('/products/bulk-assign-category', [AdminProductController::class, 'bulkAssignCategory']);
 
     Route::get('/products/{id}/variants', [AdminProductVariantController::class, 'index']);
     Route::post('/variants', [AdminProductVariantController::class, 'store']);

@@ -3,6 +3,10 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import api from "../api"
+import TextField from "@mui/material/TextField"
+import Button from "@mui/material/Button"
+import Checkbox from "@mui/material/Checkbox"
+import FormControlLabel from "@mui/material/FormControlLabel"
 
 export default function Register() {
   const [first_name, setFirst] = useState("")
@@ -12,6 +16,7 @@ export default function Register() {
   const [password_confirmation, setConfirm] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPw, setShowPw] = useState(false)
   const nav = useNavigate()
 
   const submit = async (e) => {
@@ -65,77 +70,25 @@ export default function Register() {
         {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={submit}>
-          <div style={{ marginBottom: "var(--spacing-lg)" }}>
-            <label htmlFor="first_name">
-              <strong>Họ và tên</strong>
-            </label>
-            <input
-              id="first_name"
-              placeholder="Nguyễn Văn A"
-              value={first_name}
-              onChange={(e) => setFirst(e.target.value)}
-              required
-            />
-          </div>
+          <TextField fullWidth label="Họ và tên" value={first_name} onChange={e => setFirst(e.target.value)} sx={{ mb: 2 }} required />
 
-          <div style={{ marginBottom: "var(--spacing-lg)" }}>
-            <label htmlFor="username">
-              <strong>Tên tài khoản</strong>
-            </label>
-            <input
-              id="username"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
+          <TextField fullWidth label="Tên tài khoản" value={username} onChange={e => setUsername(e.target.value)} sx={{ mb: 2 }} required />
 
-          <div style={{ marginBottom: "var(--spacing-lg)" }}>
-            <label htmlFor="email">
-              <strong>Email</strong>
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+          <TextField fullWidth label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} sx={{ mb: 2 }} required />
 
-          <div style={{ marginBottom: "var(--spacing-lg)" }}>
-            <label htmlFor="password">
-              <strong>Mật khẩu</strong>
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <TextField fullWidth label="Mật khẩu" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} sx={{ mb: 1 }} required />
+          <FormControlLabel control={<Checkbox checked={showPw} onChange={e => setShowPw(e.target.checked)} />} label="Hiển thị mật khẩu" />
 
           <div style={{ marginBottom: "var(--spacing-lg)" }}>
             <label htmlFor="password_confirmation">
               <strong>Xác nhận mật khẩu</strong>
             </label>
-            <input
-              id="password_confirmation"
-              type="password"
-              placeholder="••••••••"
-              value={password_confirmation}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-            />
+            <TextField fullWidth label="Xác nhận mật khẩu" type={showPw ? 'text' : 'password'} value={password_confirmation} onChange={e => setConfirm(e.target.value)} sx={{ mb: 1 }} required error={Boolean(password_confirmation) && password_confirmation !== password} helperText={Boolean(password_confirmation) && password_confirmation !== password ? 'Mật khẩu không khớp' : ''} />
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: "100%" }}>
+          <Button type="submit" variant="contained" disabled={loading} fullWidth>
             {loading ? <span className="spinner" /> : "Đăng ký"}
-          </button>
+          </Button>
         </form>
 
         <hr style={{ margin: "var(--spacing-lg) 0", borderColor: "var(--neutral-gray)" }} />

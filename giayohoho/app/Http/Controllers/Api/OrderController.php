@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\OrderDetail;
 use App\Models\OrderItem;
 use App\Models\Coupon;
+use App\Services\Discount\DiscountCalculator;
 use App\Models\UserCoupon;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
@@ -50,14 +51,9 @@ class OrderController extends Controller
                 && $now->between(Carbon::parse($coupon->start_date), Carbon::parse($coupon->end_date))
                 && (! $coupon->min_purchase || $sub >= (float) $coupon->min_purchase);
             if ($valid) {
-                if ($coupon->discount_type === 'PERCENTAGE') {
-                    $discount = $sub * ((float) $coupon->discount_value / 100);
-                    if ($coupon->max_discount) {
-                        $discount = min($discount, (float) $coupon->max_discount);
-                    }
-                } else {
-                    $discount = (float) $coupon->discount_value;
-                }
+                $calc = new DiscountCalculator();
+                $strategy = $calc->forCoupon($coupon);
+                $discount = $strategy->calculate((float) $sub);
             }
         }
         $total = max(0, $sub - $discount);

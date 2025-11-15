@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
 
 export default function Orders() {
   const [orders, setOrders] = useState([])
@@ -10,14 +14,19 @@ export default function Orders() {
 
   return (
     <div>
-      <h2>Đơn hàng của bạn</h2>
-      <ul>
+      <Typography variant="h5" sx={{ mb: 2 }}>Đơn hàng của bạn</Typography>
+      <Grid container spacing={2}>
         {orders.map(o => (
-          <li key={o.id}>
-            #{o.id} • {o.status} • Tổng: {o.total}
-          </li>
+          <Grid item xs={12} md={6} key={o.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1">#{o.id} • {o.status}</Typography>
+                <Typography>Tổng: {new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(o.total)}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </ul>
+      </Grid>
     </div>
   )
 }

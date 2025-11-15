@@ -94,5 +94,30 @@ class ProductController extends Controller
         Product::findOrFail($id)->delete();
         return response()->json(['message' => 'deleted']);
     }
+
+    public function bulkAssignCategory(Request $request)
+    {
+        $data = $request->validate([
+            'category_id' => 'required|integer|exists:categories,id',
+            'filters' => 'array'
+        ]);
+        $q = Product::query();
+        $filters = $data['filters'] ?? [];
+        if (!empty($filters['brand'])) $q->whereIn('brand', (array) $filters['brand']);
+        if (!empty($filters['gender'])) $q->whereIn('gender', (array) $filters['gender']);
+        if (!empty($filters['min_price'])) $q->where('base_price', '>=', (int) $filters['min_price']);
+        if (!empty($filters['max_price'])) $q->where('base_price', '<=', (int) $filters['max_price']);
+        if (!empty($filters['surface'])) {
+            $q->whereHas('surfaces', function ($b) use ($filters) { $b->whereIn('code', (array) $filters['surface']); });
+        }
+        if (!empty($filters['cushioning_level']) || !empty($filters['pronation_type'])) {
+            $q->whereHas('specs', function ($b) use ($filters) {
+                if (!empty($filters['cushioning_level'])) $b->whereIn('cushioning_level', (array) $filters['cushioning_level']);
+                if (!empty($filters['pronation_type'])) $b->whereIn('pronation_type', (array) $filters['pronation_type']);
+            });
+        }
+        $count = $q->update(['category_id' => (int) $data['category_id']]);
+        return response()->json(['updated' => $count]);
+    }
 }
 

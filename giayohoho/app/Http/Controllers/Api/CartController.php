@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
+use App\Services\Discount\DiscountCalculator;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,14 +32,9 @@ class CartController extends Controller
                 && $now->between(Carbon::parse($cart->coupon->start_date), Carbon::parse($cart->coupon->end_date))
                 && (! $cart->coupon->min_purchase || $sub >= (float) $cart->coupon->min_purchase);
             if ($valid) {
-                if ($cart->coupon->discount_type === 'PERCENTAGE') {
-                    $discount = $sub * ((float) $cart->coupon->discount_value / 100);
-                    if ($cart->coupon->max_discount) {
-                        $discount = min($discount, (float) $cart->coupon->max_discount);
-                    }
-                } else {
-                    $discount = (float) $cart->coupon->discount_value;
-                }
+                $calc = new DiscountCalculator();
+                $strategy = $calc->forCoupon($cart->coupon);
+                $discount = $strategy->calculate((float) $sub);
             } else {
                 $cart->coupon_id = null;
             }
