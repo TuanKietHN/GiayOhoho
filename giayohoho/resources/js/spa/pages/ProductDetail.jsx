@@ -21,6 +21,7 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [me, setMe] = useState(null)
+  const [simPage, setSimPage] = useState(0)
   const toast = useToast()
 
   useEffect(() => {
@@ -292,4 +293,4 @@ export default function ProductDetail() {
     </div>
   )
 }
-  const [simPage, setSimPage] = useState(0)
+

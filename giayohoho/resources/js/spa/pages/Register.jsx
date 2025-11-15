@@ -70,26 +70,66 @@ export default function Register() {
         {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={submit}>
-          <TextField fullWidth label="Họ và tên" value={first_name} onChange={e => setFirst(e.target.value)} sx={{ mb: 2 }} required />
+  <TextField 
+    fullWidth 
+    label="Họ và tên" 
+    value={first_name} 
+    onChange={e => setFirst(e.target.value)} 
+    sx={{ mb: 2 }} 
+    required 
+  />
 
-          <TextField fullWidth label="Tên tài khoản" value={username} onChange={e => setUsername(e.target.value)} sx={{ mb: 2 }} required />
+  <TextField 
+    fullWidth 
+    label="Tên tài khoản" 
+    value={username} 
+    onChange={e => setUsername(e.target.value)} 
+    sx={{ mb: 2 }} 
+    required 
+  />
 
-          <TextField fullWidth label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} sx={{ mb: 2 }} required />
+  <TextField 
+    fullWidth 
+    label="Email" 
+    type="email" 
+    value={email} 
+    onChange={e => setEmail(e.target.value)} 
+    sx={{ mb: 2 }} 
+    required 
+  />
 
-          <TextField fullWidth label="Mật khẩu" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} sx={{ mb: 1 }} required />
-          <FormControlLabel control={<Checkbox checked={showPw} onChange={e => setShowPw(e.target.checked)} />} label="Hiển thị mật khẩu" />
+  <TextField 
+    fullWidth 
+    label="Mật khẩu" 
+    type={showPw ? 'text' : 'password'} 
+    value={password} 
+    onChange={e => setPassword(e.target.value)} 
+    sx={{ mb: 2 }} 
+    required 
+  />
 
-          <div style={{ marginBottom: "var(--spacing-lg)" }}>
-            <label htmlFor="password_confirmation">
-              <strong>Xác nhận mật khẩu</strong>
-            </label>
-            <TextField fullWidth label="Xác nhận mật khẩu" type={showPw ? 'text' : 'password'} value={password_confirmation} onChange={e => setConfirm(e.target.value)} sx={{ mb: 1 }} required error={Boolean(password_confirmation) && password_confirmation !== password} helperText={Boolean(password_confirmation) && password_confirmation !== password ? 'Mật khẩu không khớp' : ''} />
-          </div>
+  <TextField 
+    fullWidth 
+    label="Xác nhận mật khẩu" 
+    type={showPw ? 'text' : 'password'} 
+    value={password_confirmation} 
+    onChange={e => setConfirm(e.target.value)} 
+    sx={{ mb: 1 }} 
+    required 
+    error={Boolean(password_confirmation) && password_confirmation !== password} 
+    helperText={Boolean(password_confirmation) && password_confirmation !== password ? 'Mật khẩu không khớp' : ''} 
+  />
 
-          <Button type="submit" variant="contained" disabled={loading} fullWidth>
-            {loading ? <span className="spinner" /> : "Đăng ký"}
-          </Button>
-        </form>
+  <FormControlLabel 
+    control={<Checkbox checked={showPw} onChange={e => setShowPw(e.target.checked)} />} 
+    label="Hiển thị mật khẩu" 
+    sx={{ mb: 2 }}
+  />
+
+  <Button type="submit" variant="contained" disabled={loading} fullWidth>
+    {loading ? <span className="spinner" /> : "Đăng ký"}
+  </Button>
+</form>
 
         <hr style={{ margin: "var(--spacing-lg) 0", borderColor: "var(--neutral-gray)" }} />
 
