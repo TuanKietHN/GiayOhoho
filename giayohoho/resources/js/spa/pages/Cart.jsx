@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { useToast } from '../ui/toast.jsx'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import Grid from '@mui/material/Grid'
 
 export default function Cart() {
   const [cart, setCart] = useState(null)
@@ -42,25 +47,31 @@ export default function Cart() {
 
   return (
     <div>
-      <h2>Giỏ hàng</h2>
-      <ul>
+      <Typography variant="h5" sx={{ mb: 2 }}>Giỏ hàng</Typography>
+      <Grid container spacing={2}>
         {(cart.items || []).map(it => (
-          <li key={it.id} style={{ marginBottom: 8 }}>
-            <Link to={`/products/${it.variant.product.id}`}>{it.variant.product.name}</Link>
-            <span style={{ marginLeft: 8 }}>{it.variant.size} • {it.variant.color}</span>
-            <span style={{ marginLeft: 8 }}>x {it.quantity}</span>
-            <button onClick={() => updateQty(it.id, it.quantity + 1)} style={{ marginLeft: 8 }}>+</button>
-            <button onClick={() => updateQty(it.id, Math.max(1, it.quantity - 1))} style={{ marginLeft: 4 }}>-</button>
-            <button onClick={() => removeItem(it.id)} style={{ marginLeft: 8 }}>Xoá</button>
-          </li>
+          <Grid item xs={12} key={it.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1"><Link to={`/products/${it.variant.product.id}`}>{it.variant.product.name}</Link></Typography>
+                <Typography variant="body2">{it.variant.size} • {it.variant.color}</Typography>
+                <div style={{ marginTop: 8 }}>
+                  <Button onClick={() => updateQty(it.id, Math.max(1, it.quantity - 1))} variant="outlined">-</Button>
+                  <span style={{ margin: '0 8px' }}>{it.quantity}</span>
+                  <Button onClick={() => updateQty(it.id, it.quantity + 1)} variant="outlined">+</Button>
+                  <Button onClick={() => removeItem(it.id)} variant="text" sx={{ ml: 1 }}>Xoá</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </ul>
+      </Grid>
       <div style={{ marginTop: 12 }}>
         <input placeholder="Mã giảm giá" value={code} onChange={e => setCode(e.target.value)} />
-        <button onClick={apply} style={{ marginLeft: 8 }}>Áp dụng</button>
+        <Button onClick={apply} sx={{ ml: 1 }} variant="contained">Áp dụng</Button>
       </div>
-      <p>Trước giảm: {cart.sub_total} • Giảm: {cart.discount_amount} • Tổng: {cart.total}</p>
-      <button onClick={() => nav('/checkout')}>Đặt hàng</button>
+      <Typography sx={{ mt: 2 }}>Trước giảm: {cart.sub_total} • Giảm: {cart.discount_amount} • Tổng: {cart.total}</Typography>
+      <Button onClick={() => nav('/checkout')} sx={{ mt: 1 }} variant="contained">Đặt hàng</Button>
     </div>
   )
 }

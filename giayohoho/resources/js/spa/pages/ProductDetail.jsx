@@ -1,9 +1,14 @@
-"use client"
-
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import api from "../api"
 import { useToast } from "../ui/toast.jsx"
+import Grid from "@mui/material/Grid"
+import Card from "@mui/material/Card"
+import CardContent from "@mui/material/CardContent"
+import Typography from "@mui/material/Typography"
+import IconButton from "@mui/material/IconButton"
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos"
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -16,6 +21,7 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [me, setMe] = useState(null)
+  const [simPage, setSimPage] = useState(0)
   const toast = useToast()
 
   useEffect(() => {
@@ -84,31 +90,19 @@ export default function ProductDetail() {
   return (
     <div>
       {/* Product Header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
-          gap: "var(--spacing-2xl)",
-          marginBottom: "var(--spacing-2xl)",
-        }}
-      >
-        {/* Image */}
-        <div
-          style={{
-            backgroundColor: "var(--neutral-gray)",
-            borderRadius: "var(--radius-lg)",
-            height: "400px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "5rem",
-          }}
-        >
-          👟
-        </div>
-
-        {/* Details */}
-        <div>
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              {p.images && p.images.length > 0 ? (
+                <img src={p.images[0].image_url} alt={p.images[0].alt_text || p.name} style={{ width: '100%', borderRadius: 8 }} />
+              ) : (
+                <div style={{ backgroundColor: '#e5e7eb', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>👟</div>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
           <h1 style={{ marginBottom: "var(--spacing-sm)" }}>{p.name}</h1>
           <p style={{ color: "var(--neutral-medium)", marginBottom: "var(--spacing-md)" }}>
             {p.brand} • {p.gender}
@@ -126,9 +120,7 @@ export default function ProductDetail() {
           </div>
 
           {/* Description */}
-          <p style={{ marginBottom: "var(--spacing-lg)", lineHeight: 1.8 }}>
-            {p.description || "Sản phẩm chất lượng cao, thiết kế hiện đại"}
-          </p>
+          <Typography sx={{ mb: 2 }}>{p.description || "Thông tin sản phẩm"}</Typography>
 
           {/* Variants Selection */}
           <div style={{ marginBottom: "var(--spacing-lg)" }}>
@@ -173,8 +165,8 @@ export default function ProductDetail() {
               ❤️ Yêu thích
             </button>
           </div>
-        </div>
-      </div>
+        </Grid>
+      </Grid>
 
       {/* Divider */}
       <hr style={{ margin: "var(--spacing-2xl) 0", borderColor: "var(--neutral-gray)" }} />
@@ -183,28 +175,26 @@ export default function ProductDetail() {
       {similar.length > 0 && (
         <div style={{ marginBottom: "var(--spacing-2xl)" }}>
           <h2 style={{ marginBottom: "var(--spacing-lg)" }}>Có thể bạn sẽ thích</h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-              gap: "var(--spacing-lg)",
-            }}
-          >
-            {similar.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  backgroundColor: "var(--neutral-white)",
-                  borderRadius: "var(--radius-lg)",
-                  padding: "var(--spacing-lg)",
-                  textAlign: "center",
-                }}
-              >
-                <p style={{ fontSize: "3rem", marginBottom: "var(--spacing-md)" }}>👟</p>
-                <h4>{s.name}</h4>
-                <p style={{ color: "var(--neutral-medium)", fontSize: "0.9rem" }}>{s.brand}</p>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconButton onClick={() => setSimPage(Math.max(0, simPage - 1))}><ArrowBackIosNewIcon /></IconButton>
+            <Grid container spacing={2}>
+              {similar.slice(simPage * 4, simPage * 4 + 4).map((s) => (
+                <Grid item xs={12} sm={6} md={3} key={s.id}>
+                  <Card>
+                    <CardContent style={{ textAlign: 'center' }}>
+                      {s.images && s.images.length > 0 ? (
+                        <img src={s.images[0].image_url} alt={s.images[0].alt_text || s.name} style={{ width: '100%', borderRadius: 8 }} />
+                      ) : (
+                        <div style={{ backgroundColor: '#e5e7eb', height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>👟</div>
+                      )}
+                      <Typography variant="subtitle1" sx={{ mt: 1 }}>{s.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">{s.brand}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <IconButton onClick={() => setSimPage(Math.min(Math.floor((similar.length - 1) / 4), simPage + 1))}><ArrowForwardIosIcon /></IconButton>
           </div>
         </div>
       )}
@@ -303,3 +293,4 @@ export default function ProductDetail() {
     </div>
   )
 }
+

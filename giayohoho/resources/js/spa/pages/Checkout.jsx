@@ -1,12 +1,21 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import api from '../api'
-import { useToast } from '../ui/toast'
+import { useToast } from '../ui/toast.jsx'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
 
 export default function Checkout() {
   const [order_address, setAddr] = useState('')
   const [payment_method, setPay] = useState('COD')
   const [msg, setMsg] = useState('')
   const toast = useToast()
+  const [total, setTotal] = useState(0)
+  useEffect(() => { api.get('/auth/cart').then(res => setTotal(Number(res.data.total) || 0)).catch(() => {}) }, [])
 
   const place = async () => {
     setMsg('')
@@ -23,15 +32,24 @@ export default function Checkout() {
 
   return (
     <div>
-      <h2>Checkout</h2>
-      {msg && <p>{msg}</p>}
-      <input placeholder="Địa chỉ giao hàng" value={order_address} onChange={e => setAddr(e.target.value)} />
-      <select value={payment_method} onChange={e => setPay(e.target.value)} style={{ display: 'block', marginTop: 8 }}>
-        <option value="COD">COD</option>
-        <option value="VNPAY">VNPAY</option>
-        <option value="MOMO">Momo</option>
-      </select>
-      <button onClick={place} style={{ marginTop: 8 }}>Đặt hàng</button>
+      <Typography variant="h5" sx={{ mb: 2 }}>Checkout</Typography>
+      {msg && <Typography>{msg}</Typography>}
+      <Card>
+        <CardContent>
+          <TextField fullWidth label="Địa chỉ giao hàng" value={order_address} onChange={e => setAddr(e.target.value)} />
+          <Select fullWidth value={payment_method} onChange={e => setPay(e.target.value)} sx={{ mt: 2 }}>
+            <MenuItem value="COD">COD</MenuItem>
+            <MenuItem value="SePay">SePay</MenuItem>
+          </Select>
+          <Typography sx={{ mt: 2 }}>Tổng thanh toán: {new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(total)}</Typography>
+          <div style={{ marginTop: 12, display:'flex', gap:8 }}>
+            <Button onClick={place} variant="contained">Đặt hàng</Button>
+            {payment_method === 'SePay' && (
+              <Button variant="outlined" onClick={() => window.open(`/sepay/checkout?amount=${Math.max(0, total)}&invoice=INV_${Date.now()}&desc=Thanh+toan+don+hang`, '_blank')}>Thanh toán SePay</Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

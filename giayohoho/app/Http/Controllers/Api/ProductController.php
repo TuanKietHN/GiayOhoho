@@ -114,7 +114,9 @@ class ProductController extends Controller
                       $p->where('cushioning_level', $base->specs?->cushioning_level);
                   });
             })
+            ->whereBetween('base_price', [max(0, (int)$base->base_price - 1000000), (int)$base->base_price + 1000000])
             ->with(['images', 'variants'])
+            ->orderByDesc('id')
             ->limit(12)
             ->get();
         return response()->json($query);
