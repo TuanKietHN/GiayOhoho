@@ -15,9 +15,14 @@ class SepayCheckoutController extends Controller
         $invoice = $request->query('invoice', 'INV_'.time());
         $desc = $request->query('desc', 'Thanh toán đơn hàng');
 
-        $merchantId = config('services.sepay.merchant_id', env('SEPAY_MERCHANT_ID'));
-        $secretKey = config('services.sepay.secret_key', env('SEPAY_SECRET_KEY'));
-        $env = env('SEPAY_ENV', 'sandbox') === 'production' ? SePayClient::ENVIRONMENT_PRODUCTION : SePayClient::ENVIRONMENT_SANDBOX;
+        $merchantId = env('SEPAY_MERCHANT_ID') ?: config('services.sepay.merchant_id');
+        $secretKey = env('SEPAY_SECRET_KEY') ?: config('services.sepay.secret_key');
+        $envName = env('SEPAY_ENV', 'sandbox');
+        $env = $envName === 'production' ? SePayClient::ENVIRONMENT_PRODUCTION : SePayClient::ENVIRONMENT_SANDBOX;
+
+        if (!is_string($merchantId) || !is_string($secretKey) || empty($merchantId) || empty($secretKey)) {
+            return response('SePay cấu hình thiếu: vui lòng set SEPAY_MERCHANT_ID và SEPAY_SECRET_KEY trong .env', 500);
+        }
 
         $client = new SePayClient($merchantId, $secretKey, $env);
 

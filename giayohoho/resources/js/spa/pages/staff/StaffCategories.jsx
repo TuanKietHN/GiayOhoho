@@ -9,24 +9,29 @@ import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminCategories() {
+export default function StaffCategories() {
   const { t } = useI18n()
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [editOpen, setEditOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
+  
   const load = async () => {
     const res = await api.get('/admin/categories')
     setItems(res.data)
   }
+  
   useEffect(() => { load() }, [])
+  
   const create = async () => {
     await api.post('/admin/categories', { name, slug })
     setName(''); setSlug('')
     load()
   }
+  
   const del = async (id) => { await api.delete(`/admin/categories/${id}`); load() }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('categories')}</Typography>
@@ -72,4 +77,3 @@ export default function AdminCategories() {
     </div>
   )
 }
-

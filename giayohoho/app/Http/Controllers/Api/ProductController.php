@@ -58,7 +58,7 @@ class ProductController extends Controller
             });
         }
 
-        if ($request->filled('cushioning_level') || $request->filled('pronation_type') || $request->boolean('is_waterproof', null) !== null) {
+        if ($request->filled('cushioning_level') || $request->filled('pronation_type') || $request->has('is_waterproof')) {
             $query->whereHas('specs', function (Builder $b) use ($request) {
                 if ($request->filled('cushioning_level')) {
                     $b->whereIn('cushioning_level', (array) $request->input('cushioning_level'));
@@ -67,9 +67,13 @@ class ProductController extends Controller
                     $b->whereIn('pronation_type', (array) $request->input('pronation_type'));
                 }
                 if ($request->has('is_waterproof')) {
-                    $b->where('is_waterproof', (bool) $request->input('is_waterproof'));
+                    $b->where('is_waterproof', $request->boolean('is_waterproof'));
                 }
             });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', (int) $request->input('category_id'));
         }
 
         $sort = $request->string('sort')->toString();

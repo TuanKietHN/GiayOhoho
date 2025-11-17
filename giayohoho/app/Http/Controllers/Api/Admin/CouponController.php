@@ -28,6 +28,7 @@ class CouponController extends Controller
             'usage_limit' => 'nullable|integer',
             'is_active' => 'boolean',
         ]);
+        $data['code'] = mb_strtoupper($data['code']);
         $coupon = Coupon::create($data);
         return response()->json($coupon, 201);
     }
@@ -46,6 +47,7 @@ class CouponController extends Controller
             'usage_limit' => 'nullable|integer',
             'is_active' => 'boolean',
         ]);
+        if (isset($data['code'])) $data['code'] = mb_strtoupper($data['code']);
         $coupon->update($data);
         return response()->json($coupon);
     }

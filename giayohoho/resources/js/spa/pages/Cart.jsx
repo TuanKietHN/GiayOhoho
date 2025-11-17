@@ -35,7 +35,8 @@ export default function Cart() {
 
   const apply = async () => {
     try {
-      await api.post('/auth/cart/apply-coupon', { code })
+      const normalize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+      await api.post('/auth/cart/apply-coupon', { code: normalize(code) })
       load()
       toast?.show('Đã áp dụng mã giảm giá', 'success')
     } catch (e) {

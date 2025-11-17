@@ -34,6 +34,12 @@ export default function ProductDetail() {
       .catch(() => {})
   }, [id])
 
+  useEffect(() => {
+    if (variantId) {
+      api.get(`/variants/${variantId}`).then((res) => setP((prev) => ({ ...prev, _selectedVariant: res.data })))
+    }
+  }, [variantId])
+
   const addToCart = async () => {
     if (!variantId) {
       toast?.show("Vui lòng chọn biến thể", "error")
@@ -180,7 +186,7 @@ export default function ProductDetail() {
             <Grid container spacing={2}>
               {similar.slice(simPage * 4, simPage * 4 + 4).map((s) => (
                 <Grid item xs={12} sm={6} md={3} key={s.id}>
-                  <Card>
+                  <Card onClick={() => nav(`/products/${s.id}`)} style={{ cursor: 'pointer' }}>
                     <CardContent style={{ textAlign: 'center' }}>
                       {s.images && s.images.length > 0 ? (
                         <img src={s.images[0].image_url} alt={s.images[0].alt_text || s.name} style={{ width: '100%', borderRadius: 8 }} />

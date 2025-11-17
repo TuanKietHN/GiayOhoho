@@ -23,6 +23,10 @@ export default function Checkout() {
       const res = await api.post('/auth/checkout', { order_address, payment_method })
       setMsg('Đã đặt hàng #' + res.data.id)
       toast?.show('Đặt hàng thành công', 'success')
+      if (payment_method === 'SePay') {
+        const amount = Math.max(0, Number(res.data.total) || 0)
+        window.location.href = `/sepay/checkout?amount=${amount}&invoice=INV_${res.data.id}&desc=Thanh+toan+don+hang`
+      }
     } catch (e) {
       const m = e?.response?.data?.message || 'Đặt hàng thất bại'
       setMsg(m)
@@ -43,10 +47,7 @@ export default function Checkout() {
           </Select>
           <Typography sx={{ mt: 2 }}>Tổng thanh toán: {new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(total)}</Typography>
           <div style={{ marginTop: 12, display:'flex', gap:8 }}>
-            <Button onClick={place} variant="contained">Đặt hàng</Button>
-            {payment_method === 'SePay' && (
-              <Button variant="outlined" onClick={() => window.open(`/sepay/checkout?amount=${Math.max(0, total)}&invoice=INV_${Date.now()}&desc=Thanh+toan+don+hang`, '_blank')}>Thanh toán SePay</Button>
-            )}
+            <Button onClick={place} variant="contained" disabled={!order_address?.trim()}>Đặt hàng</Button>
           </div>
         </CardContent>
       </Card>

@@ -11,15 +11,26 @@ import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminCoupons() {
+export default function StaffCoupons() {
   const { t } = useI18n()
   const [data, setData] = useState({ data: [] })
   const [form, setForm] = useState({ code: '', discount_type: 'PERCENTAGE', discount_value: 0, start_date: new Date().toISOString(), end_date: new Date(Date.now()+86400000).toISOString() })
   const [editOpen, setEditOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
-  const load = async () => { const res = await api.get('/admin/coupons'); setData(res.data) }
+  
+  const load = async () => { 
+    const res = await api.get('/admin/coupons') 
+    setData(res.data) 
+  }
+  
   useEffect(() => { load() }, [])
-  const create = async () => { await api.post('/admin/coupons', form); setForm({ ...form, code: '', discount_value: 0 }); load() }
+  
+  const create = async () => { 
+    await api.post('/admin/coupons', form) 
+    setForm({ ...form, code: '', discount_value: 0 }) 
+    load() 
+  }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('coupons')}</Typography>
@@ -75,4 +86,3 @@ export default function AdminCoupons() {
     </div>
   )
 }
-

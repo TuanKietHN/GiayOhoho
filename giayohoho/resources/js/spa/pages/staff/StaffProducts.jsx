@@ -11,7 +11,7 @@ import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminProducts() {
+export default function StaffProducts() {
   const { t } = useI18n()
   const [data, setData] = useState({ data: [] })
   const [form, setForm] = useState({ name: '', slug: '', brand: '', gender: 'unisex', base_price: 0 })
@@ -19,17 +19,22 @@ export default function AdminProducts() {
   const [editItem, setEditItem] = useState(null)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulk, setBulk] = useState({ category_id: '', filters: { brand: '', gender: '', min_price: '', max_price: '' } })
+  
   const load = async () => {
     const res = await api.get('/admin/products')
     setData(res.data)
   }
+  
   useEffect(() => { load() }, [])
+  
   const create = async () => {
     await api.post('/admin/products', form)
     setForm({ name: '', slug: '', brand: '', gender: 'unisex', base_price: 0 })
     load()
   }
+  
   const openEdit = (p) => { setEditItem(p); setEditOpen(true) }
+  
   const saveEdit = async () => {
     if (!editItem) return
     const { id, name, slug, brand, gender, base_price, description } = editItem
@@ -38,7 +43,9 @@ export default function AdminProducts() {
     setEditItem(null)
     load()
   }
+  
   const remove = async (id) => { await api.delete(`/admin/products/${id}`); load() }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('products')}</Typography>
@@ -122,4 +129,3 @@ export default function AdminProducts() {
     </div>
   )
 }
-

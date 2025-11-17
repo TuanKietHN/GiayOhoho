@@ -18,12 +18,21 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
+    public function show(int $id)
+    {
+        $order = OrderDetail::with(['items.variant.product', 'user'])->findOrFail($id);
+        return response()->json($order);
+    }
+
     public function updateStatus(Request $request, int $id)
     {
         $data = $request->validate([
             'status' => 'required|string|in:pending,paid,shipping,done,cancel',
         ]);
         $order = OrderDetail::findOrFail($id);
+        if ($order->status === 'done') {
+            return response()->json(['message' => 'immutable_done'], 422);
+        }
         $order->status = $data['status'];
         $order->save();
         return response()->json($order);

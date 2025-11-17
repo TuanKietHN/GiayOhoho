@@ -8,12 +8,22 @@ import Grid from '@mui/material/Grid'
 import Rating from '@mui/material/Rating'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminReviews() {
+export default function StaffReviews() {
   const { t } = useI18n()
   const [data, setData] = useState({ data: [] })
-  const load = async () => { const res = await api.get('/admin/reviews'); setData(res.data) }
+  
+  const load = async () => { 
+    const res = await api.get('/admin/reviews') 
+    setData(res.data) 
+  }
+  
   useEffect(() => { load() }, [])
-  const remove = async (id) => { await api.delete(`/admin/reviews/${id}`); load() }
+  
+  const remove = async (id) => { 
+    await api.delete(`/admin/reviews/${id}`) 
+    load() 
+  }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('reviews')}</Typography>
@@ -38,4 +48,3 @@ export default function AdminReviews() {
     </div>
   )
 }
-

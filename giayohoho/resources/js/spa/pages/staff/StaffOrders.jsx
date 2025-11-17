@@ -9,18 +9,21 @@ import Button from '@mui/material/Button'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminOrders() {
+export default function StaffOrders() {
   const [data, setData] = useState({ data: [] })
   const [status, setStatus] = useState('')
   const [pendingStatus, setPendingStatus] = useState({})
-  const { t } = useI18n()
   const toast = useToast()
   const nav = useNavigate()
+  const { t } = useI18n()
+  
   const load = async () => {
     const res = await api.get('/admin/orders', { params: status ? { status } : {} })
     setData(res.data)
   }
+  
   useEffect(() => { load() }, [])
+  
   const saveStatus = async (id) => {
     const s = pendingStatus[id]
     if (!s) return
@@ -32,6 +35,7 @@ export default function AdminOrders() {
       toast?.show(t('cannot_update_completed_order'), 'error')
     }
   }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('orders')}</Typography>
@@ -50,7 +54,7 @@ export default function AdminOrders() {
             <Card>
               <CardContent>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div style={{ cursor:'pointer' }} onClick={()=>nav(`/admin/orders/${o.id}`)}>
+                  <div style={{ cursor:'pointer' }} onClick={()=>nav(`/staff/orders/${o.id}`)}>
                     <Typography variant='subtitle1'>#{o.id} • {t(o.status)}</Typography>
                     <Typography>{t('total')}: {new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(o.total)}</Typography>
                   </div>
@@ -73,4 +77,3 @@ export default function AdminOrders() {
     </div>
   )
 }
-

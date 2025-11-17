@@ -9,18 +9,25 @@ import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import { useI18n } from '../../ui/i18n.jsx'
 
-export default function AdminVariants() {
+export default function StaffVariants() {
   const { t } = useI18n()
   const [low, setLow] = useState([])
   const [threshold, setThreshold] = useState(5)
   const [editOpen, setEditOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
+  
   const load = async () => {
     const res = await api.get('/admin/variants/low-stock', { params: { threshold } })
     setLow(res.data)
   }
+  
   useEffect(() => { load() }, [])
-  const adjust = async (id, delta) => { await api.post(`/admin/variants/${id}/adjust-stock`, { delta }); load() }
+  
+  const adjust = async (id, delta) => { 
+    await api.post(`/admin/variants/${id}/adjust-stock`, { delta }) 
+    load() 
+  }
+  
   return (
     <div>
       <Typography variant="h5" sx={{ mb: 2 }}>{t('low_stock_warning')}</Typography>
@@ -66,4 +73,3 @@ export default function AdminVariants() {
     </div>
   )
 }
-

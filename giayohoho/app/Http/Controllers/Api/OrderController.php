@@ -37,6 +37,8 @@ class OrderController extends Controller
             if ($coupon) {
                 $cart->coupon_id = $coupon->id;
             }
+        } else {
+            $coupon = $cart->coupon; // dùng coupon đang áp dụng trong giỏ
         }
 
         $sub = 0;
@@ -62,6 +64,9 @@ class OrderController extends Controller
         if (isset($data['address_id']) && $data['address_id']) {
             $orderAddress = $request->user()->addresses()->find($data['address_id'])?->address_line;
         }
+        if (! $orderAddress) {
+            return response()->json(['message' => 'order_address_required'], 422);
+        }
 
         return DB::transaction(function () use ($userId, $sub, $discount, $total, $coupon, $orderAddress, $cart, $request) {
             $order = OrderDetail::create([
@@ -75,13 +80,17 @@ class OrderController extends Controller
             ]);
 
             foreach ($cart->items as $item) {
+                $variant = ProductVariant::lockForUpdate()->findOrFail($item->product_variant_id);
+                if ((int) $variant->stock < (int) $item->quantity) {
+                    abort(response()->json(['message' => 'out_of_stock', 'variant_id' => $variant->id], 422));
+                }
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_variant_id' => $item->product_variant_id,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                 ]);
-                ProductVariant::where('id', $item->product_variant_id)->decrement('stock', (int) $item->quantity);
+                $variant->decrement('stock', (int) $item->quantity);
             }
 
             if ($coupon) {
