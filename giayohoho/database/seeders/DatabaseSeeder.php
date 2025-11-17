@@ -145,7 +145,7 @@ class DatabaseSeeder extends Seeder
 
             DB::table('product_images')->insert([
                 'product_id' => $productId,
-                'image_url' => 'https://picsum.photos/seed/'.Str::random(6).'/600/400',
+                'image_url' => 'https://source.unsplash.com/600x400/?'.urlencode($brand.' shoe'),
                 'alt_text' => $name,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -165,7 +165,7 @@ class DatabaseSeeder extends Seeder
                 DB::table('product_images')->insert([
                     'product_id' => $productId,
                     'product_variant_id' => $variantId,
-                    'image_url' => 'https://picsum.photos/seed/'.Str::random(6).'/600/400',
+                    'image_url' => 'https://source.unsplash.com/600x400/?'.urlencode($brand.' '.$sizes[$j].' shoe'),
                     'alt_text' => $name.' '.$sizes[$j],
                     'created_at' => now(),
                     'updated_at' => now(),
