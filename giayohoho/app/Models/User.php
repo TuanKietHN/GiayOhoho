@@ -13,6 +13,8 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $table = 'accounts';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -26,6 +28,15 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'google_id',
+        'locked',
+        'status',
+        'email_verified',
+        'email_verified_at',
+        'last_login_at',
+        'last_login_ip',
+        'login_count',
+        'ban_reason',
         'birth_of_date',
         'phone_number',
     ];
@@ -51,36 +62,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'birth_of_date' => 'date',
+            'locked' => 'boolean',
+            'email_verified' => 'boolean',
+            'last_login_at' => 'datetime',
+            'login_count' => 'integer',
         ];
     }
 
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+        return $this->belongsToMany(Role::class, 'account_roles', 'account_id', 'role_id');
     }
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(Address::class, 'user_id');
+        return $this->hasMany(Address::class, 'account_id');
     }
 
     public function cart(): HasMany
     {
-        return $this->hasMany(Cart::class, 'user_id');
+        return $this->hasMany(Cart::class, 'account_id');
     }
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class, 'user_id');
+        return $this->hasMany(Review::class, 'account_id');
     }
 
     public function wishlist(): HasMany
     {
-        return $this->hasMany(Wishlist::class, 'user_id');
+        return $this->hasMany(Wishlist::class, 'account_id');
     }
 
     public function orders(): HasMany
     {
-        return $this->hasMany(OrderDetail::class, 'user_id');
+        return $this->hasMany(OrderDetail::class, 'account_id');
     }
 }

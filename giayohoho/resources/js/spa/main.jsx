@@ -20,7 +20,7 @@ import AdminVariants from "./pages/admin/AdminVariants"
 import AdminCoupons from "./pages/admin/AdminCoupons"
 import AdminReviews from "./pages/admin/AdminReviews"
 import { ToastProvider } from "./ui/toast.jsx"
-import api from "./api"
+import api, { clearAuthPayload } from "./api"
 import "../../css/styles.css"
 import AppTheme from "./ui/theme.jsx"
 import AppBar from "@mui/material/AppBar"
@@ -28,15 +28,22 @@ import Toolbar from "@mui/material/Toolbar"
 import Button from "@mui/material/Button"
 import Container from "@mui/material/Container"
 
+function hasRole(me, roleName) {
+  return (me?.roles || []).some((role) => {
+    const name = typeof role === "string" ? role : role?.name
+    return String(name || "").toUpperCase() === roleName.toUpperCase()
+  })
+}
+
 function Nav({ me }) {
   const token = localStorage.getItem("token")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const logout = async () => {
     try {
-      await (await import("./api")).default.post("/auth/logout")
+      await api.post("/auth/logout")
     } catch {}
-    localStorage.removeItem("token")
+    clearAuthPayload()
     window.location.href = "/"
   }
 
@@ -49,7 +56,7 @@ function Nav({ me }) {
         <Button color="inherit" component={Link} to="/cart">Giỏ hàng</Button>
         <Button color="inherit" component={Link} to="/orders">Đơn hàng</Button>
         <Button color="inherit" component={Link} to="/wishlist">Yêu thích</Button>
-        {me?.roles?.some((r) => r.name === "admin") && (
+        {hasRole(me, "ADMIN") && (
           <Button color="inherit" component={Link} to="/admin">Admin</Button>
         )}
         {me ? (
@@ -70,7 +77,7 @@ function AdminRoute({ me, loading, children }) {
   if (loading && token) {
     return <div style={{ textAlign: "center", padding: "var(--spacing-2xl)" }}><div className="spinner" /></div>
   }
-  if (!me?.roles?.some((r) => r.name === "admin")) return <Navigate to="/" replace />
+  if (!hasRole(me, "ADMIN")) return <Navigate to="/" replace />
   return children
 }
 

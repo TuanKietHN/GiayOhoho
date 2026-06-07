@@ -2,11 +2,18 @@
 
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import api from "../api"
+import api, { persistAuthPayload } from "../api"
 import TextField from "@mui/material/TextField"
 import Button from "@mui/material/Button"
 import Checkbox from "@mui/material/Checkbox"
 import FormControlLabel from "@mui/material/FormControlLabel"
+
+function hasRole(me, roleName) {
+  return (me?.roles || []).some((role) => {
+    const name = typeof role === "string" ? role : role?.name
+    return String(name || "").toUpperCase() === roleName.toUpperCase()
+  })
+}
 
 export default function Register() {
   const [first_name, setFirst] = useState("")
@@ -31,10 +38,11 @@ export default function Register() {
     setLoading(true)
     try {
       const res = await api.post("/auth/register", { first_name, username, email, password, password_confirmation })
-      localStorage.setItem("token", res.data.token)
-      const me = await api.get("/auth/me")
-      localStorage.setItem("user_email", me.data.email || "")
-      const isAdmin = (me.data.roles || []).some(r => r.name === "admin")
+      persistAuthPayload(res.data)
+      const meRes = await api.get("/auth/me")
+      const me = meRes.data || res.data.account || {}
+      localStorage.setItem("user_email", me.email || "")
+      const isAdmin = hasRole(me, "ADMIN")
       window.location.href = isAdmin ? "/admin" : "/"
     } catch (e) {
       setError(e.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.")

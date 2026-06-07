@@ -19,7 +19,9 @@ class Product extends Model
         'brand',
         'gender',
         'base_price',
+        'original_price',
         'description',
+        'deleted_at',
     ];
 
     public function category(): BelongsTo

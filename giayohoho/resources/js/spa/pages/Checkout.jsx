@@ -21,8 +21,21 @@ export default function Checkout() {
     setMsg('')
     try {
       const res = await api.post('/auth/checkout', { order_address, payment_method })
-      setMsg('Đã đặt hàng #' + res.data.id)
+      const order = res.data
+      setMsg('Đã đặt hàng #' + order.id)
       toast?.show('Đặt hàng thành công', 'success')
+
+      if (payment_method === 'PAYOS') {
+        const payRes = await api.post('/payments', {
+          orderId: order.id,
+          provider: 'PAYOS',
+          returnUrl: `${window.location.origin}/orders`,
+          cancelUrl: `${window.location.origin}/orders`
+        })
+        if (payRes.data?.checkoutUrl) {
+          window.location.href = payRes.data.checkoutUrl
+        }
+      }
     } catch (e) {
       const m = e?.response?.data?.message || 'Đặt hàng thất bại'
       setMsg(m)
@@ -39,14 +52,11 @@ export default function Checkout() {
           <TextField fullWidth label="Địa chỉ giao hàng" value={order_address} onChange={e => setAddr(e.target.value)} />
           <Select fullWidth value={payment_method} onChange={e => setPay(e.target.value)} sx={{ mt: 2 }}>
             <MenuItem value="COD">COD</MenuItem>
-            <MenuItem value="SePay">SePay</MenuItem>
+            <MenuItem value="PAYOS">PayOS</MenuItem>
           </Select>
           <Typography sx={{ mt: 2 }}>Tổng thanh toán: {new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(total)}</Typography>
           <div style={{ marginTop: 12, display:'flex', gap:8 }}>
             <Button onClick={place} variant="contained">Đặt hàng</Button>
-            {payment_method === 'SePay' && (
-              <Button variant="outlined" onClick={() => window.open(`/sepay/checkout?amount=${Math.max(0, total)}&invoice=INV_${Date.now()}&desc=Thanh+toan+don+hang`, '_blank')}>Thanh toán SePay</Button>
-            )}
           </div>
         </CardContent>
       </Card>

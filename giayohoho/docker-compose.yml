@@ -1,0 +1,79 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: giayohoho-app:local
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      APP_NAME: GiayOhoho
+      APP_ENV: local
+      APP_KEY: base64:YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:${APP_PORT:-8000}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: giayohoho
+      DB_USERNAME: giayohoho
+      DB_PASSWORD: giayohoho
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: hello@giayohoho.local
+      MAIL_FROM_NAME: GiayOhoho
+      RUN_SEEDERS: "${RUN_SEEDERS:-true}"
+      PAYOS_CLIENT_ID: "${PAYOS_CLIENT_ID:-}"
+      PAYOS_API_KEY: "${PAYOS_API_KEY:-}"
+      PAYOS_CHECKSUM_KEY: "${PAYOS_CHECKSUM_KEY:-}"
+      PAYOS_RETURN_URL: "${PAYOS_RETURN_URL:-http://localhost:8000/orders}"
+      PAYOS_CANCEL_URL: "${PAYOS_CANCEL_URL:-http://localhost:8000/orders}"
+      GHN_ENABLED: "${GHN_ENABLED:-false}"
+      GHN_BASE_URL: "${GHN_BASE_URL:-https://dev-online-gateway.ghn.vn}"
+      GHN_TOKEN: "${GHN_TOKEN:-}"
+      GHN_SHOP_ID: "${GHN_SHOP_ID:-}"
+      GHN_FROM_NAME: "${GHN_FROM_NAME:-GiayOhoho}"
+      GHN_FROM_PHONE: "${GHN_FROM_PHONE:-0900000000}"
+      GHN_FROM_ADDRESS: "${GHN_FROM_ADDRESS:-Ha Noi}"
+      GHN_FROM_DISTRICT_ID: "${GHN_FROM_DISTRICT_ID:-}"
+      GHN_FROM_WARD_CODE: "${GHN_FROM_WARD_CODE:-}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      REFRESH_TOKEN_COOKIE_SECURE: "false"
+      VITE_APP_NAME: GiayOhoho
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    volumes:
+      - app-storage:/var/www/html/storage
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: giayohoho
+      POSTGRES_USER: giayohoho
+      POSTGRES_PASSWORD: giayohoho
+    ports:
+      - "${DB_PORT_FORWARD:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U giayohoho -d giayohoho"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+
+volumes:
+  postgres-data:
+  app-storage:

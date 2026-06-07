@@ -13,11 +13,12 @@ class RoleMiddleware
         if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
-        $has = $user->roles()->where('name', $role)->exists();
+        $has = $user->roles()
+            ->whereRaw('UPPER(name) = ?', [strtoupper($role)])
+            ->exists();
         if (! $has) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
         return $next($request);
     }
 }
-

@@ -1,23 +1,59 @@
-# Cấu hình Thanh toán
+# PayOS Setup
 
-## SePay
-- Env:
-  - `SEPAY_MERCHANT_ID=SP-TEST-TT72AB53`
-  - `SEPAY_SECRET_KEY=spsk_test_9Qmb7TMWapSwwkK4vLLgfw2XWw1uNB67`
-  - `SEPAY_ENV=sandbox`
-- IPN URL: `http://localhost:8000/sepay/ipn`
-- Checkout URL: `http://localhost:8000/sepay/checkout?amount=100000&invoice=INV_001&desc=Test`
+Thanh toan hien tai dung PayOS. SePay/VNPAY/Momo/ZaloPay khong con la luong chinh trong ban migrate Laravel nay.
 
-## VNPAY/Momo/ZaloPay (Sandbox)
-- Tạo tài khoản sandbox và lấy `merchantId`, `secretKey`, `appId` tương ứng.
-- Tạo các env:
-  - `VNPAY_TMN_CODE=...`, `VNPAY_HASH_SECRET=...`
-  - `MOMO_PARTNER_CODE=...`, `MOMO_ACCESS_KEY=...`, `MOMO_SECRET_KEY=...`
-  - `ZALOPAY_APP_ID=...`, `ZALOPAY_KEY1=...`, `ZALOPAY_KEY2=...`
-- Tạo các route callback/IPN tương tự `sepay/ipn` và cập nhật URL trong hệ thống cổng thanh toán.
-- UI: hiển thị lựa chọn phương thức thanh toán, tạo QR/redirect tới trang thanh toán của nhà cung cấp.
+## Env bat buoc
 
-## Lưu ý bảo mật
-- Không commit khóa bí mật lên repo công khai.
-- Kiểm tra chữ ký trả về từ nhà cung cấp trước khi cập nhật trạng thái đơn hàng.
-- Ghi log IPN và chống replay bằng kiểm tra invoice/timestamps.
+```env
+PAYOS_API_URL=https://api-merchant.payos.vn/v2/payment-requests
+PAYOS_CLIENT_ID=
+PAYOS_API_KEY=
+PAYOS_CHECKSUM_KEY=
+PAYOS_RETURN_URL=http://localhost:8000/orders
+PAYOS_CANCEL_URL=http://localhost:8000/orders
+PAYOS_EXPIRATION_MINUTES=30
+```
+
+## API flow
+
+1. Tao order:
+
+```http
+POST /api/orders
+Authorization: Bearer <access-token>
+```
+
+2. Tao payment link PayOS:
+
+```http
+POST /api/payments
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{
+  "orderId": 1,
+  "provider": "PAYOS",
+  "returnUrl": "http://localhost:8000/orders",
+  "cancelUrl": "http://localhost:8000/orders"
+}
+```
+
+Response tra `checkoutUrl`, `paymentLinkId`, `qrCode`; frontend redirect nguoi dung den `checkoutUrl`.
+
+3. Webhook PayOS:
+
+```text
+POST http://localhost:8000/api/payments/webhooks/payos
+```
+
+Backend verify `signature` bang `PAYOS_CHECKSUM_KEY`, luu event vao `payment_webhook_events`, sau do cap nhat:
+
+- `payment_details.status`
+- `order_details.status`
+- `payment_events`
+
+## Luu y bao mat
+
+- Khong commit `PAYOS_API_KEY` hoac `PAYOS_CHECKSUM_KEY`.
+- Khong cap nhat trang thai thanh toan neu webhook signature sai.
+- `payment_webhook_events(provider,event_key)` dung de chong replay/idempotency.

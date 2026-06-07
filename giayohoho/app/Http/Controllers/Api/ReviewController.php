@@ -28,7 +28,7 @@ class ReviewController extends Controller
         $variantIds = ProductVariant::where('product_id', $data['product_id'])->pluck('id');
         $purchased = OrderItem::whereIn('product_variant_id', $variantIds)
             ->whereHas('order', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
+                $q->where('account_id', $userId);
             })
             ->exists();
 
@@ -37,7 +37,7 @@ class ReviewController extends Controller
         }
 
         $review = Review::create([
-            'user_id' => $userId,
+            'account_id' => $userId,
             'product_id' => $data['product_id'],
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null,
@@ -47,7 +47,7 @@ class ReviewController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $review = Review::where('user_id', $request->user()->id)->findOrFail($id);
+        $review = Review::where('account_id', $request->user()->id)->findOrFail($id);
         $data = $request->validate([
             'rating' => 'sometimes|required|integer|min:1|max:5',
             'comment' => 'nullable|string',
@@ -58,7 +58,7 @@ class ReviewController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $review = Review::where('user_id', $request->user()->id)->findOrFail($id);
+        $review = Review::where('account_id', $request->user()->id)->findOrFail($id);
         $review->delete();
         return response()->json(['message' => 'deleted']);
     }

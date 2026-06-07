@@ -21,6 +21,12 @@ class Coupon extends Model
         'usage_limit',
         'times_used',
         'is_active',
+        'version',
+        'applicable_scope',
+        'applicable_brand',
+        'applicable_product_id',
+        'applicable_variant_id',
+        'deleted_at',
     ];
 
     public function userCoupons(): HasMany
@@ -28,4 +34,3 @@ class Coupon extends Model
         return $this->hasMany(UserCoupon::class, 'coupon_id');
     }
 }
-

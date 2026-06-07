@@ -10,13 +10,18 @@ class Wishlist extends Model
     protected $table = 'wishlist';
 
     protected $fillable = [
-        'user_id',
+        'account_id',
         'product_id',
     ];
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'account_id');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'account_id');
     }
 
     public function product(): BelongsTo
@@ -24,4 +29,3 @@ class Wishlist extends Model
         return $this->belongsTo(Product::class, 'product_id');
     }
 }
-

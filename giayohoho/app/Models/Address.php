@@ -10,18 +10,25 @@ class Address extends Model
     protected $table = 'addresses';
 
     protected $fillable = [
-        'user_id',
+        'account_id',
         'address_line',
         'ward',
         'district',
         'city',
         'country',
         'postal_code',
+        'ghn_province_id',
+        'ghn_district_id',
+        'ghn_ward_code',
     ];
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'account_id');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'account_id');
     }
 }
-

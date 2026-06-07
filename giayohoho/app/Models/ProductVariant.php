@@ -17,6 +17,8 @@ class ProductVariant extends Model
         'sku',
         'stock',
         'extra_price',
+        'version',
+        'deleted_at',
     ];
 
     protected $casts = [

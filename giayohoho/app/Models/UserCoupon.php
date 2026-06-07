@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserCoupon extends Model
 {
-    protected $table = 'user_coupons';
+    protected $table = 'account_coupons';
 
     protected $fillable = [
-        'user_id',
+        'account_id',
         'coupon_id',
         'order_id',
         'used_at',
@@ -20,7 +20,12 @@ class UserCoupon extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'account_id');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'account_id');
     }
 
     public function coupon(): BelongsTo
@@ -28,4 +33,3 @@ class UserCoupon extends Model
         return $this->belongsTo(Coupon::class, 'coupon_id');
     }
 }
-

@@ -7,7 +7,10 @@ export default function AdminCoupons() {
   const [form, setForm] = useState({ code: '', discount_type: 'PERCENTAGE', discount_value: 0, start_date: new Date().toISOString(), end_date: new Date(Date.now()+86400000).toISOString() })
   const [editOpen, setEditOpen] = useState(false)
   const [editItem, setEditItem] = useState(null)
-  const load = async () => { const res = await api.get('/admin/coupons'); setData(res.data) }
+  const load = async () => {
+    const res = await api.get('/admin/coupons')
+    setData(Array.isArray(res.data) ? { data: res.data } : res.data)
+  }
   useEffect(() => { load() }, [])
   const create = async () => { await api.post('/admin/coupons', form); setForm({ ...form, code: '', discount_value: 0 }); load() }
   return (
@@ -45,4 +48,3 @@ export default function AdminCoupons() {
     </div>
   )
 }
-

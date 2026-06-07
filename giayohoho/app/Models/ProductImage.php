@@ -14,6 +14,12 @@ class ProductImage extends Model
         'product_variant_id',
         'image_url',
         'alt_text',
+        'object_name',
+        'content_type',
+        'size_bytes',
+        'is_primary',
+        'sort_order',
+        'deleted_at',
     ];
 
     public function product(): BelongsTo

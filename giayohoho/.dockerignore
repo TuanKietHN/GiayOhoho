@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+public/build
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+npm-debug.log
+yarn-error.log
+Dockerfile
+docker-compose.yml

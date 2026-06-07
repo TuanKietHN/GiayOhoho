@@ -11,7 +11,7 @@ class Cart extends Model
     protected $table = 'cart';
 
     protected $fillable = [
-        'user_id',
+        'account_id',
         'total',
         'sub_total',
         'discount_amount',
@@ -20,7 +20,12 @@ class Cart extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'account_id');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'account_id');
     }
 
     public function items(): HasMany
@@ -33,4 +38,3 @@ class Cart extends Model
         return $this->belongsTo(Coupon::class, 'coupon_id');
     }
 }
-

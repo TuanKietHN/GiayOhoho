@@ -36,10 +36,10 @@ class ExportController extends Controller
         ];
         $callback = function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['id','user_id','total','sub_total','discount_amount','status','created_at']);
+            fputcsv($out, ['id','account_id','total','sub_total','discount_amount','status','created_at']);
             OrderDetail::chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $o) {
-                    fputcsv($out, [$o->id, $o->user_id, $o->total, $o->sub_total, $o->discount_amount, $o->status, $o->created_at]);
+                    fputcsv($out, [$o->id, $o->account_id, $o->total, $o->sub_total, $o->discount_amount, $o->status, $o->created_at]);
                 }
             });
             fclose($out);
@@ -47,4 +47,3 @@ class ExportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 }
-

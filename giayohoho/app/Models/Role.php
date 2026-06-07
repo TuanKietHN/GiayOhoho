@@ -14,11 +14,8 @@ class Role extends Model
         'description',
     ];
 
-    public $timestamps = false;
-
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'user_roles', 'role_id', 'user_id');
+        return $this->belongsToMany(User::class, 'account_roles', 'role_id', 'account_id');
     }
 }
-
