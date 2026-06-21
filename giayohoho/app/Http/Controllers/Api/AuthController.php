@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Address;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Auth\AuthTokenService;
 use App\Services\Auth\GoogleOAuthService;
 use App\Services\Auth\RefreshTokenService;
+use App\Services\Mail\MailOutboxService;
+use App\Services\Mail\UserMailContext;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +19,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request, RefreshTokenService $refreshTokens)
+    public function register(
+        Request $request,
+        RefreshTokenService $refreshTokens,
+        AuthTokenService $authTokens,
+        MailOutboxService $mailOutbox
+    )
     {
         $this->normalizeRegisterPayload($request);
 
@@ -37,7 +45,8 @@ class AuthController extends Controller
             'ghn_ward_code' => 'nullable|string|max:50',
         ]);
 
-        $user = DB::transaction(function () use ($data) {
+        $verificationRequired = (bool) config('services.auth.email_verification_required', false);
+        $user = DB::transaction(function () use ($data, $verificationRequired) {
             $user = User::create([
                 'name' => trim(strip_tags($data['first_name'].' '.($data['last_name'] ?? ''))),
                 'first_name' => trim(strip_tags($data['first_name'])),
@@ -47,10 +56,10 @@ class AuthController extends Controller
                 'password' => Hash::make($data['password']),
                 'phone_number' => $data['phone_number'] ?? null,
                 'birth_of_date' => $data['birth_of_date'] ?? null,
-                'status' => 'ACTIVE',
+                'status' => $verificationRequired ? 'PENDING_VERIFICATION' : 'ACTIVE',
                 'locked' => false,
-                'email_verified' => true,
-                'email_verified_at' => now(),
+                'email_verified' => ! $verificationRequired,
+                'email_verified_at' => $verificationRequired ? null : now(),
             ]);
 
             $roleId = Role::where('name', 'CUSTOMER')->value('id');
@@ -88,6 +97,15 @@ class AuthController extends Controller
             return $user->load('roles');
         });
 
+        if ($verificationRequired) {
+            $this->sendVerificationEmail($user, $authTokens, $mailOutbox);
+
+            return $this->created([
+                'account' => $this->accountDto($user),
+                'requiresPasswordSetup' => $this->requiresPasswordSetup($user),
+            ], 'Registration completed. Please verify your email.');
+        }
+
         $token = $user->createToken('api_token')->plainTextToken;
         $refresh = $refreshTokens->issue($user, $request);
 
@@ -107,7 +125,7 @@ class AuthController extends Controller
 
         $user = User::where('email', strtolower(trim($data['email'])))->first();
 
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
+        if (! $user || ! $user->password || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Thong tin dang nhap khong chinh xac.'],
             ]);
@@ -202,35 +220,96 @@ class AuthController extends Controller
         );
     }
 
-    public function forgotPassword(Request $request)
+    public function forgotPassword(Request $request, AuthTokenService $authTokens, MailOutboxService $mailOutbox)
     {
-        $request->validate(['email' => 'required|email']);
+        $data = $request->validate(['email' => 'required|email']);
+        $user = User::where('email', strtolower(trim($data['email'])))
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($user && ! $user->locked && $user->status !== 'DISABLED') {
+            $token = $authTokens->issue(
+                $user,
+                AuthTokenService::PASSWORD_RESET,
+                (int) config('services.auth.password_reset_ttl_seconds', 3600)
+            );
+            $link = rtrim((string) config('services.auth.frontend_url'), '/')
+                .'/reset-password?token='.urlencode($token);
+            $mailOutbox->enqueue(
+                UserMailContext::fromUser($user),
+                'AUTH_PASSWORD_RESET',
+                '[GiayOhoho] Dat lai mat khau',
+                [
+                    'link' => $link,
+                    'message' => 'Mo lien ket nay de dat lai mat khau. Lien ket se het han sau 60 phut.',
+                ]
+            );
+        }
 
         return $this->ok(null, 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi.');
     }
 
-    public function resendVerification(Request $request)
+    public function resendVerification(Request $request, AuthTokenService $authTokens, MailOutboxService $mailOutbox)
     {
-        $request->validate(['email' => 'required|email']);
+        $data = $request->validate(['email' => 'required|email']);
+        $user = User::where('email', strtolower(trim($data['email'])))
+            ->whereNull('deleted_at')
+            ->first();
+        if ($user && ! $user->locked && ! $user->email_verified && $user->status !== 'DISABLED') {
+            $this->sendVerificationEmail($user, $authTokens, $mailOutbox);
+        }
 
         return $this->ok(null, 'Nếu email tồn tại, email xác thực sẽ được gửi lại.');
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(
+        Request $request,
+        AuthTokenService $authTokens,
+        RefreshTokenService $refreshTokens,
+        MailOutboxService $mailOutbox
+    )
     {
-        $request->validate([
+        $data = $request->validate([
             'token' => 'required|string',
             'newPassword' => 'required|string|min:6',
         ]);
+        $user = $authTokens->consume($data['token'], AuthTokenService::PASSWORD_RESET);
+        if ($user->trashed() || $user->locked || $user->status === 'DISABLED') {
+            throw ValidationException::withMessages(['token' => ['Account cannot reset password.']]);
+        }
 
-        return $this->ok(null, 'Reset password token accepted by migration stub.');
+        $user->forceFill([
+            'password' => Hash::make($data['newPassword']),
+            'status' => $user->status === 'PENDING_VERIFICATION' ? 'ACTIVE' : $user->status,
+            'email_verified' => $user->status === 'PENDING_VERIFICATION' ? true : $user->email_verified,
+            'email_verified_at' => $user->status === 'PENDING_VERIFICATION' ? now() : $user->email_verified_at,
+        ])->save();
+        $refreshTokens->revokeAll($user);
+        $user->tokens()->delete();
+        $mailOutbox->enqueue(
+            UserMailContext::fromUser($user),
+            'AUTH_PASSWORD_CHANGED',
+            '[GiayOhoho] Mat khau da duoc cap nhat',
+            ['message' => 'Mat khau tai khoan cua ban vua duoc cap nhat.']
+        );
+
+        return $this->ok(null, 'Password reset completed.');
     }
 
-    public function verifyEmail(Request $request)
+    public function verifyEmail(Request $request, AuthTokenService $authTokens)
     {
-        $request->validate(['token' => 'required|string']);
+        $data = $request->validate(['token' => 'required|string']);
+        $user = $authTokens->consume($data['token'], AuthTokenService::EMAIL_VERIFICATION);
+        if ($user->trashed() || $user->status === 'DISABLED') {
+            throw ValidationException::withMessages(['token' => ['Account cannot be verified.']]);
+        }
+        $user->forceFill([
+            'email_verified' => true,
+            'email_verified_at' => now(),
+            'status' => 'ACTIVE',
+        ])->save();
 
-        return $this->ok(null, 'Email verification token accepted by migration stub.');
+        return $this->ok(null, 'Email verification completed.');
     }
 
     public function changePassword(Request $request, RefreshTokenService $refreshTokens)
@@ -247,12 +326,15 @@ class AuthController extends Controller
             ]);
         }
 
+        if (Hash::check($data['newPassword'], $user->password)) {
+            throw ValidationException::withMessages([
+                'newPassword' => ['Mật khẩu mới phải khác mật khẩu hiện tại.'],
+            ]);
+        }
+
         $user->forceFill(['password' => Hash::make($data['newPassword'])])->save();
-        $refreshTokens->revokeOtherSessions($user, $refreshTokens->tokenFromRequest($request));
-        $currentTokenId = $user->currentAccessToken()?->id;
-        $user->tokens()
-            ->when($currentTokenId, fn($query) => $query->where('id', '<>', $currentTokenId))
-            ->delete();
+        $refreshTokens->revokeAll($user);
+        $user->tokens()->delete();
 
         return $this->ok(null, 'Password changed');
     }
@@ -264,6 +346,11 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
+        if (! $this->requiresPasswordSetup($user)) {
+            throw ValidationException::withMessages([
+                'newPassword' => ['Tài khoản đã có mật khẩu.'],
+            ]);
+        }
         $user->forceFill(['password' => Hash::make($data['newPassword'])])->save();
 
         return $this->ok($this->accountDto($user->load('roles')), 'Password setup completed');
@@ -330,7 +417,7 @@ class AuthController extends Controller
             'refreshTokenExpiresAt' => isset($refresh['expiresAt']) ? $refresh['expiresAt']->toIso8601String() : null,
             'refreshTokenExpiresIn' => $refresh['expiresInSeconds'] ?? null,
             'account' => $this->accountDto($user),
-            'requiresPasswordSetup' => false,
+            'requiresPasswordSetup' => $this->requiresPasswordSetup($user),
         ];
     }
 
@@ -353,7 +440,35 @@ class AuthController extends Controller
             'lastName' => $user->last_name,
             'phoneNumber' => $user->phone_number,
             'roles' => $user->roles->pluck('name')->map(fn (string $name) => strtoupper($name))->values()->all(),
-            'requiresPasswordSetup' => false,
+            'requiresPasswordSetup' => $this->requiresPasswordSetup($user),
         ];
+    }
+
+    private function sendVerificationEmail(
+        User $user,
+        AuthTokenService $authTokens,
+        MailOutboxService $mailOutbox
+    ): void {
+        $token = $authTokens->issue(
+            $user,
+            AuthTokenService::EMAIL_VERIFICATION,
+            (int) config('services.auth.email_verification_ttl_seconds', 86400)
+        );
+        $link = rtrim((string) config('services.auth.frontend_url'), '/')
+            .'/verify-email?token='.urlencode($token);
+        $mailOutbox->enqueue(
+            UserMailContext::fromUser($user),
+            'AUTH_EMAIL_VERIFICATION',
+            '[GiayOhoho] Xac minh email tai khoan',
+            [
+                'link' => $link,
+                'message' => 'Mo lien ket nay de xac minh email tai khoan.',
+            ]
+        );
+    }
+
+    private function requiresPasswordSetup(User $user): bool
+    {
+        return ! is_string($user->password) || trim($user->password) === '';
     }
 }

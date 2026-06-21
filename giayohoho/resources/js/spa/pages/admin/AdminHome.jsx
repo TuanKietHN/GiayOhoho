@@ -37,10 +37,12 @@ export default function AdminHome() {
             <Link to="/admin/variants"><Button variant="contained">Biến thể</Button></Link>
             <Link to="/admin/coupons"><Button variant="contained">Coupons</Button></Link>
             <Link to="/admin/reviews"><Button variant="contained">Reviews</Button></Link>
+            <Link to="/admin/size-guides"><Button variant="contained">Size guides</Button></Link>
+            <Link to="/admin/gia-khuyen-mai"><Button variant="contained">Giá khuyến mãi</Button></Link>
+            <Link to="/admin/monitoring"><Button variant="contained">Monitoring</Button></Link>
           </div>
         </Paper>
       </Grid>
     </Grid>
   )
 }
-

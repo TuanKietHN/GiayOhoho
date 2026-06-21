@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\ProductMediaController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\ContactController;
@@ -38,11 +40,13 @@ Route::get('/health', function () {
 // Danh sách sản phẩm
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/by-slug/{slug}', [ProductController::class, 'showBySlug']);
+Route::get('/products/media/{slug}/{view}.svg', [ProductMediaController::class, 'show']);
 
 // Chi tiết sản phẩm
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/reviews', [ReviewController::class, 'listByProduct']);
 Route::get('/products/{id}/similar', [ProductController::class, 'similar']);
+Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 Route::get('/categories', [CategoryController::class, 'listCategories']);
 Route::get('/categories/{slug}', [CategoryController::class, 'getCategoryBySlug']);
 Route::get('/surfaces', [CategoryController::class, 'listSurfaces']);
@@ -84,6 +88,7 @@ Route::prefix('auth')->group(function () {
         Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
 
         Route::post('/reviews', [ReviewController::class, 'store']);
+        Route::get('/reviews/options', [ReviewController::class, 'options']);
         Route::put('/reviews/{id}', [ReviewController::class, 'update']);
         Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
@@ -113,9 +118,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wishlist', [WishlistController::class, 'index']);
     Route::post('/wishlist', [WishlistController::class, 'store']);
     Route::post('/wishlist/items', [WishlistController::class, 'store']);
+    Route::delete('/wishlist/items/{productId}', [WishlistController::class, 'destroyByProduct']);
     Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
 
     Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::get('/reviews/options', [ReviewController::class, 'options']);
     Route::put('/reviews/{id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
@@ -140,15 +147,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments', [PaymentController::class, 'init']);
     Route::get('/orders/{orderId}/payment', [PaymentController::class, 'byOrder']);
     Route::get('/payments/payos/return-status', [PaymentController::class, 'payosReturnStatus']);
+    Route::post('/payments/payos/sync', [PaymentController::class, 'syncPayos']);
     Route::post('/payments/{paymentId}/cancel', [PaymentController::class, 'cancel']);
 });
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
 
     Route::get('/users', [AdminUserController::class, 'index']);
+    Route::get('/users/{id}', [AdminUserController::class, 'show']);
     Route::post('/users/{id}/roles', [AdminUserController::class, 'setRoles']);
     Route::get('/accounts', [AdminUserController::class, 'index']);
+    Route::get('/accounts/{id}', [AdminUserController::class, 'show']);
     Route::patch('/accounts/{id}/status', [AdminUserController::class, 'status']);
+    Route::delete('/accounts/{id}', [AdminUserController::class, 'destroy']);
+    Route::patch('/accounts/{id}/restore', [AdminUserController::class, 'restore']);
     Route::get('/orders', [AdminOrderController::class, 'index']);
     Route::get('/orders/{id}', [AdminOrderController::class, 'show']);
     Route::post('/orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
@@ -183,6 +195,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::patch('/products/{id}/images/{imageId}/primary', [AdminProductController::class, 'setPrimaryImage']);
     Route::post('/products/bulk-assign-category', [AdminProductController::class, 'bulkAssignCategory']);
 
+    Route::get('/variants', [AdminProductVariantController::class, 'list']);
     Route::get('/products/{id}/variants', [AdminProductVariantController::class, 'index']);
     Route::post('/variants', [AdminProductVariantController::class, 'store']);
     Route::put('/variants/{id}', [AdminProductVariantController::class, 'update']);
@@ -191,12 +204,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::get('/variants/low-stock', [AdminProductVariantController::class, 'lowStock']);
 
     Route::get('/coupons', [AdminCouponController::class, 'index']);
+    Route::get('/coupons/{id}', [AdminCouponController::class, 'show']);
     Route::post('/coupons', [AdminCouponController::class, 'store']);
     Route::put('/coupons/{id}', [AdminCouponController::class, 'update']);
     Route::delete('/coupons/{id}', [AdminCouponController::class, 'destroy']);
     Route::get('/coupons/{id}/stats', [AdminCouponController::class, 'stats']);
 
     Route::get('/reviews', [AdminReviewController::class, 'index']);
+    Route::patch('/reviews/{id}/approve', [AdminReviewController::class, 'approve']);
+    Route::patch('/reviews/{id}/reject', [AdminReviewController::class, 'reject']);
+    Route::patch('/reviews/{id}/reply', [AdminReviewController::class, 'reply']);
     Route::delete('/reviews/{id}', [AdminReviewController::class, 'destroy']);
 
     Route::get('/size-guides', [AdminProductSizeGuideController::class, 'index']);
@@ -219,6 +236,17 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
 
     Route::get('/export/products.csv', [AdminExportController::class, 'productsCsv']);
     Route::get('/export/orders.csv', [AdminExportController::class, 'ordersCsv']);
+
+    Route::get('/accounts/excel/template', [AdminExportController::class, 'accountsTemplate']);
+    Route::get('/accounts/excel/export', [AdminExportController::class, 'accountsExport']);
+    Route::post('/accounts/excel/validate', [AdminExportController::class, 'accountsValidate']);
+    Route::post('/accounts/excel/import', [AdminExportController::class, 'accountsImport']);
+    Route::get('/products/excel/template', [AdminExportController::class, 'productsTemplate']);
+    Route::get('/products/excel/export', [AdminExportController::class, 'productsExcelExport']);
+    Route::post('/products/excel/validate', [AdminExportController::class, 'productsValidate']);
+    Route::post('/products/excel/import', [AdminExportController::class, 'productsImport']);
+    Route::get('/variants/excel/export', [AdminExportController::class, 'variantsExport']);
+    Route::get('/dashboard/excel/export', [AdminExportController::class, 'dashboardExport']);
 });
 
 // Payment callbacks (tuỳ provider sẽ ký số):

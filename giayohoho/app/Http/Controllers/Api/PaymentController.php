@@ -89,6 +89,52 @@ class PaymentController extends Controller
         return $this->ok($this->paymentPayload($payment));
     }
 
+    public function syncPayos(Request $request, PayOsService $payOs)
+    {
+        $data = $request->validate([
+            'orderCode' => 'required_without:order_code|integer',
+            'order_code' => 'required_without:orderCode|integer',
+        ]);
+
+        $orderCode = (int) ($data['orderCode'] ?? $data['order_code']);
+        $order = OrderDetail::where('account_id', $request->user()->id)->findOrFail($orderCode);
+        $payment = PaymentDetail::where('order_id', $order->id)->firstOrFail();
+
+        try {
+            $remote = $payOs->getPaymentRequest($order->id);
+        } catch (RuntimeException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+                'data' => null,
+                'timestamp' => now()->getTimestampMs(),
+            ], 422);
+        }
+
+        return DB::transaction(function () use ($payment, $remote, $payOs) {
+            $status = $payOs->normalizeStatus($remote['status'] ?? null);
+            $from = $payment->status;
+            $providerData = json_decode($payment->provider_data ?: '{}', true) ?: [];
+            $providerData['sync'] = $remote;
+
+            $payment->forceFill([
+                'status' => $status,
+                'transaction_id' => $remote['paymentLinkId'] ?? $payment->transaction_id,
+                'provider_data' => json_encode($providerData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ])->save();
+
+            if ($payment->order && in_array($status, ['PAID', 'CANCELLED', 'FAILED'], true)) {
+                $payment->order->forceFill(['status' => $status])->save();
+            }
+
+            if ($from !== $status) {
+                $this->recordEvent($payment, $from, $status, 'payos_sync', json_encode($remote, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            }
+
+            return $this->ok($this->paymentPayload($payment->refresh()));
+        });
+    }
+
     public function cancel(Request $request, int $paymentId)
     {
         $payment = PaymentDetail::query()

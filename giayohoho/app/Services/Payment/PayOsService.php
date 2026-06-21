@@ -96,6 +96,40 @@ class PayOsService
         ];
     }
 
+    public function getPaymentRequest(int $orderCode): array
+    {
+        $this->assertConfigured();
+
+        $response = Http::timeout(20)
+            ->acceptJson()
+            ->withHeaders([
+                'x-client-id' => (string) config('services.payos.client_id'),
+                'x-api-key' => (string) config('services.payos.api_key'),
+            ])
+            ->get(rtrim((string) config('services.payos.api_url'), '/').'/'.$orderCode);
+
+        if (! $response->ok()) {
+            throw new RuntimeException('PayOS sync failed with HTTP '.$response->status().'.');
+        }
+
+        $payload = $response->json();
+        if (($payload['code'] ?? null) !== '00') {
+            throw new RuntimeException('PayOS sync rejected: '.($payload['desc'] ?? $payload['message'] ?? 'unknown'));
+        }
+
+        return $payload['data'] ?? [];
+    }
+
+    public function normalizeStatus(?string $status): string
+    {
+        return match (strtoupper((string) $status)) {
+            'PAID' => 'PAID',
+            'CANCELLED', 'CANCELED' => 'CANCELLED',
+            'FAILED', 'EXPIRED' => 'FAILED',
+            default => 'PENDING',
+        };
+    }
+
     private function assertConfigured(): void
     {
         if (! $this->configured()) {

@@ -51,6 +51,9 @@ class RolePermissionSeeder extends Seeder
             'SHIPPING_CREATE',
             'SHIPPING_SYNC',
             'SHIPPING_PRINT',
+            'ACCOUNT_EXPORT',
+            'PRODUCT_EXPORT',
+            'DASHBOARD_EXPORT',
         ];
 
         $this->syncRolePermissions(
@@ -105,6 +108,11 @@ class RolePermissionSeeder extends Seeder
             ['code' => 'SHIPPING_CANCEL', 'description' => 'Cancel shipments', 'module' => 'SHIPPING'],
             ['code' => 'SHIPPING_SYNC', 'description' => 'Sync shipments', 'module' => 'SHIPPING'],
             ['code' => 'SHIPPING_PRINT', 'description' => 'Print shipment labels', 'module' => 'SHIPPING'],
+            ['code' => 'ACCOUNT_IMPORT', 'description' => 'Import accounts from Excel', 'module' => 'ACCOUNT'],
+            ['code' => 'ACCOUNT_EXPORT', 'description' => 'Export accounts to Excel', 'module' => 'ACCOUNT'],
+            ['code' => 'PRODUCT_IMPORT', 'description' => 'Import products and variants from Excel', 'module' => 'PRODUCT'],
+            ['code' => 'PRODUCT_EXPORT', 'description' => 'Export products and variants to Excel', 'module' => 'PRODUCT'],
+            ['code' => 'DASHBOARD_EXPORT', 'description' => 'Export dashboard statistics to Excel', 'module' => 'DASHBOARD'],
         ];
     }
 }

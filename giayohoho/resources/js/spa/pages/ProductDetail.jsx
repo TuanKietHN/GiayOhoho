@@ -21,17 +21,30 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [me, setMe] = useState(null)
+  const [reviewOptions, setReviewOptions] = useState([])
+  const [reviewOrderId, setReviewOrderId] = useState("")
   const [simPage, setSimPage] = useState(0)
   const toast = useToast()
 
   useEffect(() => {
-    api.get(`/products/${id}`).then((res) => setP(res.data))
-    api.get(`/products/${id}/similar`).then((res) => setSimilar(res.data))
-    api.get(`/products/${id}/reviews`).then((res) => setReviews(res.data))
-    api
-      .get("/auth/me")
-      .then((res) => setMe(res.data))
-      .catch(() => {})
+    const load = async () => {
+      const detail = await api.get(/^\d+$/.test(id) ? `/products/${id}` : `/products/by-slug/${encodeURIComponent(id)}`)
+      const product = detail.data
+      setP(product)
+      const [similarResponse, reviewResponse] = await Promise.all([
+        api.get(`/products/${product.id}/similar`),
+        api.get(`/products/${product.id}/reviews`),
+      ])
+      setSimilar(similarResponse.data)
+      setReviews(reviewResponse.data)
+      try {
+        const meResponse = await api.get("/auth/me")
+        setMe(meResponse.data)
+        const optionsResponse = await api.get("/reviews/options", { params: { productId: product.id } })
+        setReviewOptions(optionsResponse.data || [])
+      } catch {}
+    }
+    load()
   }, [id])
 
   const addToCart = async () => {
@@ -49,7 +62,7 @@ export default function ProductDetail() {
 
   const addToWishlist = async () => {
     try {
-      await api.post("/auth/wishlist", { product_id: Number(id) })
+      await api.post("/wishlist/items", { productId: Number(p.id) })
       toast?.show("Đã thêm vào yêu thích", "success")
     } catch {
       toast?.show("Vui lòng đăng nhập trước", "error")
@@ -58,8 +71,8 @@ export default function ProductDetail() {
 
   const submitReview = async () => {
     try {
-      await api.post("/auth/reviews", { product_id: Number(id), rating: Number(rating), comment })
-      const res = await api.get(`/products/${id}/reviews`)
+      await api.post("/reviews", { productId: Number(p.id), orderId: Number(reviewOrderId), rating: Number(rating), comment })
+      const res = await api.get(`/products/${p.id}/reviews`)
       setReviews(res.data)
       setComment("")
       setRating(5)
@@ -72,7 +85,7 @@ export default function ProductDetail() {
   const deleteReview = async (rid) => {
     try {
       await api.delete(`/auth/reviews/${rid}`)
-      const res = await api.get(`/products/${id}/reviews`)
+      const res = await api.get(`/products/${p.id}/reviews`)
       setReviews(res.data)
       toast?.show("Đã xoá review", "success")
     } catch {
@@ -95,7 +108,7 @@ export default function ProductDetail() {
           <Card>
             <CardContent>
               {p.images && p.images.length > 0 ? (
-                <img src={p.images[0].image_url} alt={p.images[0].alt_text || p.name} style={{ width: '100%', borderRadius: 8 }} />
+                <img src={p.images[0].imageUrl || p.images[0].image_url} alt={p.images[0].altText || p.images[0].alt_text || p.name} style={{ width: '100%', borderRadius: 8 }} />
               ) : (
                 <div style={{ backgroundColor: '#e5e7eb', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>👟</div>
               )}
@@ -116,7 +129,7 @@ export default function ProductDetail() {
               marginBottom: "var(--spacing-lg)",
             }}
           >
-            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p.base_price)}
+            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p.basePrice ?? p.base_price)}
           </div>
 
           {/* Description */}
@@ -183,7 +196,7 @@ export default function ProductDetail() {
                   <Card>
                     <CardContent style={{ textAlign: 'center' }}>
                       {s.images && s.images.length > 0 ? (
-                        <img src={s.images[0].image_url} alt={s.images[0].alt_text || s.name} style={{ width: '100%', borderRadius: 8 }} />
+                        <img src={s.images[0].imageUrl || s.images[0].image_url} alt={s.images[0].altText || s.images[0].alt_text || s.name} style={{ width: '100%', borderRadius: 8 }} />
                       ) : (
                         <div style={{ backgroundColor: '#e5e7eb', height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>👟</div>
                       )}
@@ -258,6 +271,24 @@ export default function ProductDetail() {
 
           <div style={{ marginBottom: "var(--spacing-lg)" }}>
             <label>
+              <strong>Đơn hàng đã nhận</strong>
+            </label>
+            <select
+              value={reviewOrderId}
+              onChange={(e) => setReviewOrderId(e.target.value)}
+              style={{ marginTop: "var(--spacing-sm)" }}
+            >
+              <option value="">-- Chọn đơn hàng --</option>
+              {reviewOptions.map((option) => (
+                <option key={option.orderId} value={option.orderId}>
+                  Đơn #{option.orderId} • {option.variantSize || "-"} / {option.variantColor || "-"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: "var(--spacing-lg)" }}>
+            <label>
               <strong>Xếp hạng</strong>
             </label>
             <select
@@ -285,7 +316,7 @@ export default function ProductDetail() {
             />
           </div>
 
-          <button onClick={submitReview} className="btn-primary">
+          <button onClick={submitReview} className="btn-primary" disabled={!reviewOrderId || comment.trim().length < 10}>
             Gửi đánh giá
           </button>
         </div>
@@ -293,4 +324,3 @@ export default function ProductDetail() {
     </div>
   )
 }
-

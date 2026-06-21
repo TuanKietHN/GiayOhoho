@@ -45,6 +45,7 @@ return new class extends Migration
         Schema::dropIfExists('products');
         Schema::dropIfExists('categories');
         Schema::dropIfExists('addresses');
+        Schema::dropIfExists('auth_tokens');
         Schema::dropIfExists('refresh_tokens');
         Schema::dropIfExists('account_login_events');
         Schema::dropIfExists('role_permissions');
@@ -244,6 +245,19 @@ return new class extends Migration
             $table->index('device_fingerprint');
             $table->index('expires_at');
         });
+
+        Schema::create('auth_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->string('token', 64)->unique();
+            $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete();
+            $table->string('type', 40);
+            $table->timestamp('expires_at');
+            $table->timestamp('consumed_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['account_id', 'type', 'consumed_at']);
+            $table->index('expires_at');
+        });
     }
 
     private function createCatalogTables(): void
@@ -374,13 +388,20 @@ return new class extends Migration
             $table->id();
             $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('order_id')->nullable();
             $table->unsignedTinyInteger('rating');
             $table->text('comment')->nullable();
+            $table->string('status', 20)->default('PENDING');
+            $table->text('shop_reply')->nullable();
+            $table->timestamp('moderated_at')->nullable();
+            $table->foreignId('moderated_by')->nullable()->constrained('accounts')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['account_id', 'product_id']);
             $table->index('product_id');
+            $table->index('order_id');
+            $table->index(['product_id', 'status', 'created_at']);
+            $table->index(['status', 'rating', 'created_at']);
         });
 
         Schema::create('wishlist', function (Blueprint $table) {
@@ -480,12 +501,22 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained('order_details')->cascadeOnDelete();
             $table->foreignId('product_variant_id')->constrained('product_variants')->cascadeOnDelete();
+            $table->unsignedBigInteger('product_id_snapshot')->nullable();
+            $table->string('product_name_snapshot')->nullable();
+            $table->string('product_slug_snapshot')->nullable();
+            $table->unsignedBigInteger('variant_id_snapshot')->nullable();
+            $table->string('variant_sku_snapshot', 100)->nullable();
+            $table->string('variant_size_snapshot', 50)->nullable();
+            $table->string('variant_color_snapshot', 100)->nullable();
+            $table->string('image_url_snapshot', 1000)->nullable();
+            $table->string('image_object_name_snapshot', 512)->nullable();
             $table->integer('quantity');
             $table->bigInteger('price');
             $table->timestamps();
 
             $table->index('order_id');
             $table->index('product_variant_id');
+            $table->index('product_id_snapshot');
         });
 
         Schema::create('account_coupons', function (Blueprint $table) {
@@ -667,10 +698,16 @@ return new class extends Migration
         DB::statement("ALTER TABLE coupons ADD CONSTRAINT chk_coupons_applicable_scope CHECK (applicable_scope IN ('ALL', 'BRAND', 'PRODUCT', 'VARIANT'))");
         DB::statement('ALTER TABLE product_variants ADD CONSTRAINT chk_product_variants_stock_non_negative CHECK (stock >= 0)');
         DB::statement('ALTER TABLE reviews ADD CONSTRAINT chk_reviews_rating_range CHECK (rating BETWEEN 1 AND 5)');
+        DB::statement("ALTER TABLE reviews ADD CONSTRAINT chk_reviews_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))");
         DB::statement('ALTER TABLE product_size_guides ADD CONSTRAINT chk_product_size_guides_scope CHECK (product_id IS NOT NULL OR brand IS NOT NULL)');
+
+        Schema::table('reviews', function (Blueprint $table) {
+            $table->foreign('order_id')->references('id')->on('order_details')->nullOnDelete();
+        });
 
         DB::statement('CREATE UNIQUE INDEX uq_order_details_idempotency_key_not_null ON order_details (idempotency_key) WHERE idempotency_key IS NOT NULL');
         DB::statement('CREATE UNIQUE INDEX uq_payment_details_webhook_key_not_null ON payment_details (webhook_idempotency_key) WHERE webhook_idempotency_key IS NOT NULL');
         DB::statement('CREATE UNIQUE INDEX uq_product_size_guides_product_active ON product_size_guides (product_id) WHERE product_id IS NOT NULL AND deleted_at IS NULL');
+        DB::statement('CREATE UNIQUE INDEX uq_reviews_account_product_order ON reviews (account_id, product_id, order_id) WHERE order_id IS NOT NULL');
     }
 };

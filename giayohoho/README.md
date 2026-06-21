@@ -85,9 +85,10 @@ database/migrations/2026_06_07_000001_create_ohgiay_schema.php
 
 Migration nay tao cac bang chinh:
 
-- Auth/RBAC: `accounts`, `roles`, `account_roles`, `permissions`, `role_permissions`, `profiles`, `refresh_tokens`
+- Auth/RBAC: `accounts`, `roles`, `account_roles`, `permissions`, `role_permissions`, `profiles`, `refresh_tokens`, `auth_tokens`
 - Catalog: `categories`, `products`, `product_variants`, `product_images`, `surfaces`, `tags`
 - Commerce: `cart`, `cart_item`, `order_details`, `order_item`, `coupons`, `account_coupons`
+  - `order_item` luu snapshot product/variant/image de lich su don hang khong bi thay doi khi admin sua hoac soft-delete catalog.
 - Providers: `payment_details`, `payment_events`, `payment_webhook_events`, `shipping_orders`, `shipping_events`
 - Laravel runtime: `personal_access_tokens`, `sessions`, `cache`, `jobs`, `failed_jobs`
 
@@ -157,6 +158,26 @@ REFRESH_TOKEN_COOKIE_SAME_SITE=lax
 ```
 
 Login/register/google tra ve `token`, `refreshToken`, `csrfToken`. React API client se luu token va tu goi `/api/auth/refresh` khi access token het han.
+
+Password reset va email verification dung token mot lan luu hash trong `auth_tokens`. Cau hinh:
+
+```env
+AUTH_EMAIL_VERIFICATION_REQUIRED=false
+AUTH_FRONTEND_URL=http://localhost:8000
+AUTH_PASSWORD_RESET_TTL_SECONDS=3600
+AUTH_EMAIL_VERIFICATION_TTL_SECONDS=86400
+```
+
+## React routes da migrate
+
+- Storefront: `/`, `/products`, `/products/:slugOrId`, `/sale`, `/wishlist`
+- Customer: `/cart`, `/checkout`, `/orders`, `/orders/:id`, `/profile`
+- Auth: `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/setup-password`
+- Support: `/contact`, `/policies`, `/ai-chatbot`
+- Payment: `/payment/payos-return`, `/payment/payos-cancel`
+- Admin: dashboard, accounts, products, categories, variants, coupons, reviews, orders, order detail, size guides, sale prices, monitoring
+
+Giao dien Login/Register React cu cua GiayOhoho duoc giu nguyen; cac page Vue con lai da duoc chuyen sang React Material UI.
 
 ## Lenh kiem tra
 

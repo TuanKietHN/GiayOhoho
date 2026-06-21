@@ -35,12 +35,6 @@ return [
         ],
     ],
 
-    'sepay' => [
-        'merchant_id' => env('SEPAY_MERCHANT_ID'),
-        'secret_key' => env('SEPAY_SECRET_KEY'),
-        'environment' => env('SEPAY_ENV', 'sandbox'),
-    ],
-
     'payos' => [
         'api_url' => env('PAYOS_API_URL', 'https://api-merchant.payos.vn/v2/payment-requests'),
         'client_id' => env('PAYOS_CLIENT_ID'),
@@ -98,6 +92,10 @@ return [
     ],
 
     'auth' => [
+        'email_verification_required' => filter_var(env('AUTH_EMAIL_VERIFICATION_REQUIRED', false), FILTER_VALIDATE_BOOL),
+        'frontend_url' => env('AUTH_FRONTEND_URL', env('APP_URL', 'http://localhost:8000')),
+        'password_reset_ttl_seconds' => (int) env('AUTH_PASSWORD_RESET_TTL_SECONDS', 3600),
+        'email_verification_ttl_seconds' => (int) env('AUTH_EMAIL_VERIFICATION_TTL_SECONDS', 86400),
         'refresh' => [
             'lifetime_seconds' => (int) env('REFRESH_TOKEN_TTL_SECONDS', 60 * 60 * 24 * 30),
             'cookie_name' => env('REFRESH_TOKEN_COOKIE', 'refresh_token'),

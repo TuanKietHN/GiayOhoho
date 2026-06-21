@@ -50,7 +50,7 @@ class OrderController extends Controller
         $couponCode = $data['couponCode'] ?? $data['coupon_code'] ?? null;
 
         $accountId = $request->user()->id;
-        $cart = Cart::with(['items.variant.product', 'coupon'])->where('account_id', $accountId)->first();
+        $cart = Cart::with(['items.variant.product.images', 'coupon'])->where('account_id', $accountId)->first();
         if (! $cart || $cart->items->isEmpty()) {
             return response()->json(['message' => 'empty_cart'], 422);
         }
@@ -125,9 +125,31 @@ class OrderController extends Controller
             ]);
 
             foreach ($cart->items as $item) {
+                $variant = $item->variant;
+                $product = $variant?->product;
+                $images = $product?->images ?? collect();
+                $image = $images
+                    ->where('product_variant_id', $variant?->id)
+                    ->sortBy([['is_primary', 'desc'], ['sort_order', 'asc'], ['id', 'asc']])
+                    ->first()
+                    ?? $images
+                        ->whereNull('product_variant_id')
+                        ->sortBy([['is_primary', 'desc'], ['sort_order', 'asc'], ['id', 'asc']])
+                        ->first()
+                    ?? $images->sortBy([['is_primary', 'desc'], ['sort_order', 'asc'], ['id', 'asc']])->first();
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_variant_id' => $item->product_variant_id,
+                    'product_id_snapshot' => $product?->id,
+                    'product_name_snapshot' => $product?->name,
+                    'product_slug_snapshot' => $product?->slug,
+                    'variant_id_snapshot' => $variant?->id,
+                    'variant_sku_snapshot' => $variant?->sku,
+                    'variant_size_snapshot' => $variant?->size,
+                    'variant_color_snapshot' => $variant?->color,
+                    'image_url_snapshot' => $image?->image_url,
+                    'image_object_name_snapshot' => $image?->object_name,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                 ]);
@@ -229,20 +251,21 @@ class OrderController extends Controller
 
                 return [
                     'id' => $item->id,
-                    'variantId' => $item->product_variant_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'sku' => $variant?->sku,
-                    'productName' => $product?->name,
-                    'product_name' => $product?->name,
-                    'productSlug' => $product?->slug,
-                    'product_slug' => $product?->slug,
-                    'size' => $variant?->size,
-                    'color' => $variant?->color,
-                    'variantSize' => $variant?->size,
-                    'variantColor' => $variant?->color,
-                    'imageUrl' => $image,
-                    'image_url' => $image,
-                    'productImage' => $image,
+                    'variantId' => $item->variant_id_snapshot ?? $item->product_variant_id,
+                    'product_variant_id' => $item->variant_id_snapshot ?? $item->product_variant_id,
+                    'productId' => $item->product_id_snapshot ?? $product?->id,
+                    'sku' => $item->variant_sku_snapshot ?? $variant?->sku,
+                    'productName' => $item->product_name_snapshot ?? $product?->name,
+                    'product_name' => $item->product_name_snapshot ?? $product?->name,
+                    'productSlug' => $item->product_slug_snapshot ?? $product?->slug,
+                    'product_slug' => $item->product_slug_snapshot ?? $product?->slug,
+                    'size' => $item->variant_size_snapshot ?? $variant?->size,
+                    'color' => $item->variant_color_snapshot ?? $variant?->color,
+                    'variantSize' => $item->variant_size_snapshot ?? $variant?->size,
+                    'variantColor' => $item->variant_color_snapshot ?? $variant?->color,
+                    'imageUrl' => $item->image_url_snapshot ?? $image,
+                    'image_url' => $item->image_url_snapshot ?? $image,
+                    'productImage' => $item->image_url_snapshot ?? $image,
                     'quantity' => (int) $item->quantity,
                     'price' => (int) $item->price,
                     'subTotal' => (int) $item->price * (int) $item->quantity,

@@ -59,6 +59,16 @@ class WishlistController extends Controller
         return response()->json(['message' => 'deleted']);
     }
 
+    public function destroyByProduct(Request $request, int $productId)
+    {
+        $item = Wishlist::where('account_id', $request->user()->id)
+            ->where('product_id', $productId)
+            ->firstOrFail();
+        $item->delete();
+
+        return $this->ok(null, 'Wishlist item deleted');
+    }
+
     private function productPayload(Product $product): array
     {
         return [

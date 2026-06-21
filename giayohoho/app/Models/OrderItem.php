@@ -12,6 +12,15 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_variant_id',
+        'product_id_snapshot',
+        'product_name_snapshot',
+        'product_slug_snapshot',
+        'variant_id_snapshot',
+        'variant_sku_snapshot',
+        'variant_size_snapshot',
+        'variant_color_snapshot',
+        'image_url_snapshot',
+        'image_object_name_snapshot',
         'quantity',
         'price',
     ];
@@ -26,4 +35,3 @@ class OrderItem extends Model
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }
-

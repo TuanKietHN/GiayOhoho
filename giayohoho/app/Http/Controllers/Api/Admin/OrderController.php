@@ -104,10 +104,13 @@ class OrderController extends Controller
         $image = $product?->images?->sortByDesc('is_primary')->sortBy('sort_order')->first()?->image_url;
 
         return [
-            'productName' => $product?->name,
-            'variantSize' => $variant?->size,
-            'variantColor' => $variant?->color,
-            'imageUrl' => $image,
+            'productId' => $item->product_id_snapshot ?? $product?->id,
+            'productName' => $item->product_name_snapshot ?? $product?->name,
+            'productSlug' => $item->product_slug_snapshot ?? $product?->slug,
+            'sku' => $item->variant_sku_snapshot ?? $variant?->sku,
+            'variantSize' => $item->variant_size_snapshot ?? $variant?->size,
+            'variantColor' => $item->variant_color_snapshot ?? $variant?->color,
+            'imageUrl' => $item->image_url_snapshot ?? $image,
             'quantity' => (int) $item->quantity,
             'price' => (int) $item->price,
             'subTotal' => (int) $item->price * (int) $item->quantity,

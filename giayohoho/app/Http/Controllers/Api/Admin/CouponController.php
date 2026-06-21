@@ -14,6 +14,11 @@ class CouponController extends Controller
         return response()->json(Coupon::orderByDesc('id')->get()->map(fn(Coupon $coupon) => $this->payload($coupon))->values());
     }
 
+    public function show(int $id)
+    {
+        return response()->json($this->payload(Coupon::withTrashed()->findOrFail($id)));
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

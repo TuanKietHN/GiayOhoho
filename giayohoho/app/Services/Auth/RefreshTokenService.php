@@ -120,6 +120,19 @@ class RefreshTokenService
             ]);
     }
 
+    public function revokeAll(User|int $user): int
+    {
+        $accountId = $user instanceof User ? $user->id : $user;
+
+        return DB::table('refresh_tokens')
+            ->where('account_id', $accountId)
+            ->whereNull('revoked_at')
+            ->update([
+                'revoked_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
     public function sessions(User $user): array
     {
         return DB::table('refresh_tokens')
