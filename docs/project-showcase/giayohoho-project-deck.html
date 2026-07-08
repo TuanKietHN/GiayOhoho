@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GiàyOhoho - Toàn bộ hệ thống và module</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* === THEME TOKENS === */
+    :root {
+      --stage-bg: #111310;
+      --slide-bg: #f7f3e8;
+      --ink: #171713;
+      --muted: #686257;
+      --panel: #fffaf0;
+      --panel-strong: #24231d;
+      --line: #d8cdbb;
+      --line-dark: #494338;
+      --leaf: #5f8f65;
+      --leaf-soft: rgba(95, 143, 101, 0.16);
+      --ink-blue: #2f5f8f;
+      --ink-blue-soft: rgba(47, 95, 143, 0.16);
+      --brick: #c85f43;
+      --brick-soft: rgba(200, 95, 67, 0.16);
+      --ochre: #be8d2b;
+      --ochre-soft: rgba(190, 141, 43, 0.18);
+      --shadow: rgba(23, 23, 19, 0.15);
+      --font-display: "Be Vietnam Pro", sans-serif;
+      --font-body: "Be Vietnam Pro", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration: 560ms;
+    }
+
+    /* === RESET === */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ===========================================
+       FIXED 16:9 STAGE: MANDATORY BASE STYLES
+       Include this ENTIRE file in every presentation.
+       Slides are authored at 1920x1080 and scaled as a whole.
+       =========================================== */
+
+    /* 1. Lock the browser viewport */
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+
+    /* 2. Full-window deck viewport */
+    .deck-viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+    }
+
+    /* 3. Fixed 16:9 design canvas.
+       JavaScript sets transform: translate(...) scale(...). */
+    .deck-stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        transform-origin: 0 0;
+        background: var(--slide-bg, #fff);
+    }
+
+    /* 4. Slides stack inside the fixed stage.
+       Content must be laid out at 1920x1080, not reflowed per device. */
+    .slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        background: var(--slide-bg, #fff);
+    }
+
+    .slide.active,
+    .slide.visible {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 1;
+    }
+
+    /* 5. Keep media inside authored slide bounds */
+    img,
+    video,
+    canvas,
+    svg {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    /* 6. Presentation chrome stays outside the slide design system */
+    .deck-controls {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    /* 7. Print one fixed-size slide per page */
+    @media print {
+        html,
+        body {
+            width: 1920px;
+            height: auto;
+            overflow: visible;
+            background: #fff;
+        }
+
+        .deck-viewport {
+            position: static;
+            overflow: visible;
+            background: #fff;
+        }
+
+        .deck-stage {
+            position: static;
+            width: auto;
+            height: auto;
+            transform: none !important;
+            background: none;
+        }
+
+        .slide {
+            position: relative;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            width: 1920px;
+            height: 1080px;
+            break-after: page;
+            page-break-after: always;
+        }
+
+        .slide:last-child {
+            break-after: auto;
+            page-break-after: auto;
+        }
+
+        .deck-controls {
+            display: none !important;
+        }
+    }
+
+    /* 8. Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.2s !important;
+        }
+    }
+
+    /* === DECK FOUNDATION === */
+    body {
+      color: var(--ink);
+      font-family: var(--font-body);
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .slide {
+      padding: 74px 88px;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(23, 23, 19, 0.045) 1px, transparent 1px),
+        linear-gradient(rgba(23, 23, 19, 0.045) 1px, transparent 1px);
+      background-size: 96px 96px;
+      opacity: 0.56;
+    }
+
+    .slide.dark {
+      --slide-bg: #181914;
+      color: #f7f3e8;
+      background:
+        radial-gradient(circle at 14% 18%, rgba(95, 143, 101, 0.2), transparent 28%),
+        radial-gradient(circle at 86% 14%, rgba(200, 95, 67, 0.16), transparent 26%),
+        #181914;
+    }
+
+    .slide.dark::before {
+      background:
+        linear-gradient(90deg, rgba(247, 243, 232, 0.06) 1px, transparent 1px),
+        linear-gradient(rgba(247, 243, 232, 0.06) 1px, transparent 1px);
+      background-size: 96px 96px;
+    }
+
+    .slide-inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+    }
+
+    .kicker {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--brick);
+    }
+
+    .dark .kicker {
+      color: #92d49b;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: var(--font-display);
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 128px;
+      max-width: 1220px;
+      margin-top: 34px;
+    }
+
+    .title-slide h1 {
+      font-size: 124px;
+      max-width: 1160px;
+    }
+
+    h2 {
+      font-size: 78px;
+      max-width: 1230px;
+    }
+
+    h3 {
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    p,
+    li {
+      font-size: 26px;
+      line-height: 1.42;
+    }
+
+    .lead {
+      font-size: 33px;
+      line-height: 1.34;
+      max-width: 1180px;
+      color: var(--muted);
+      margin-top: 28px;
+    }
+
+    .dark .lead,
+    .dark .muted {
+      color: #cfc6b6;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 22px;
+    }
+
+    .tagline {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 20px;
+      color: var(--muted);
+    }
+
+    .dark .tagline {
+      color: #cfc6b6;
+    }
+
+    .tagline span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(255, 250, 240, 0.62);
+    }
+
+    .dark .tagline span {
+      border-color: var(--line-dark);
+      background: rgba(255, 250, 240, 0.06);
+    }
+
+    /* === MOTION === */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition:
+        opacity var(--duration) var(--ease-out),
+        transform var(--duration) var(--ease-out);
+    }
+
+    .slide.visible .reveal {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slide.visible .reveal:nth-child(1) { transition-delay: 70ms; }
+    .slide.visible .reveal:nth-child(2) { transition-delay: 140ms; }
+    .slide.visible .reveal:nth-child(3) { transition-delay: 210ms; }
+    .slide.visible .reveal:nth-child(4) { transition-delay: 280ms; }
+    .slide.visible .reveal:nth-child(5) { transition-delay: 350ms; }
+
+    /* === LAYOUT PRIMITIVES === */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+      margin-top: 54px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 26px;
+      margin-top: 56px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 34px;
+      margin-top: 54px;
+    }
+
+    .panel {
+      min-height: 240px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.84);
+      box-shadow: 0 18px 42px var(--shadow);
+      padding: 30px;
+    }
+
+    .dark .panel {
+      border-color: var(--line-dark);
+      background: rgba(255, 250, 240, 0.055);
+      box-shadow: none;
+    }
+
+    .metric {
+      min-height: 258px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric strong {
+      font-family: var(--font-display);
+      font-size: 74px;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .dark .metric strong {
+      color: #f7f3e8;
+    }
+
+    .metric span {
+      display: block;
+      font-size: 22px;
+      line-height: 1.32;
+      color: var(--muted);
+    }
+
+    .dark .metric span {
+      color: #cfc6b6;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      color: var(--brick);
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .dark .badge {
+      border-color: var(--line-dark);
+      color: #92d49b;
+    }
+
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .card-title h3 {
+      max-width: 360px;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      margin-top: 40px;
+    }
+
+    .module-card {
+      min-height: 226px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.86);
+      padding: 22px;
+      box-shadow: 0 14px 34px var(--shadow);
+    }
+
+    .module-card b {
+      display: block;
+      margin-bottom: 10px;
+      font-family: var(--font-mono);
+      font-size: 22px;
+      color: var(--brick);
+    }
+
+    .module-card .count {
+      display: block;
+      margin-bottom: 12px;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .module-card p {
+      font-size: 19px;
+      line-height: 1.34;
+    }
+
+    .rail {
+      display: grid;
+      gap: 15px;
+    }
+
+    .rail-item {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      align-items: center;
+      gap: 24px;
+      min-height: 84px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.76);
+      padding: 18px 24px;
+    }
+
+    .dark .rail-item {
+      border-color: var(--line-dark);
+      background: rgba(255, 250, 240, 0.055);
+    }
+
+    .rail-item strong {
+      font-family: var(--font-display);
+      font-size: 30px;
+      line-height: 1.05;
+    }
+
+    .rail-item span {
+      font-size: 23px;
+      line-height: 1.34;
+      color: var(--muted);
+    }
+
+    .dark .rail-item span {
+      color: #cfc6b6;
+    }
+
+    .flow {
+      width: 100%;
+      height: 650px;
+      margin-top: 34px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.72);
+      padding: 22px;
+    }
+
+    .flow text {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      fill: var(--ink);
+    }
+
+    .flow .small {
+      font-size: 19px;
+      fill: var(--muted);
+    }
+
+    .flow .box {
+      fill: rgba(255, 250, 240, 0.9);
+      stroke: var(--line);
+      stroke-width: 3;
+      rx: 12;
+    }
+
+    .flow .hot {
+      fill: var(--brick-soft);
+      stroke: var(--brick);
+    }
+
+    .flow .cool {
+      fill: var(--leaf-soft);
+      stroke: var(--leaf);
+    }
+
+    .flow .blue {
+      fill: var(--ink-blue-soft);
+      stroke: var(--ink-blue);
+    }
+
+    .flow .edge {
+      stroke: var(--muted);
+      stroke-width: 3;
+      fill: none;
+      marker-end: url(#arrow);
+    }
+
+    .dark .flow {
+      border-color: var(--line-dark);
+      background: rgba(255, 250, 240, 0.05);
+    }
+
+    .dark .flow text {
+      fill: #f7f3e8;
+    }
+
+    .dark .flow .small {
+      fill: #cfc6b6;
+    }
+
+    .dark .flow .box {
+      fill: rgba(255, 250, 240, 0.08);
+      stroke: var(--line-dark);
+    }
+
+    .list {
+      display: grid;
+      gap: 15px;
+      margin-top: 26px;
+    }
+
+    .list li {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .list li::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 3px solid var(--brick);
+      margin-top: 12px;
+    }
+
+    .dark .list li::before {
+      border-color: #92d49b;
+    }
+
+    .table {
+      display: grid;
+      margin-top: 42px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255, 250, 240, 0.82);
+    }
+
+    .table-row {
+      display: grid;
+      grid-template-columns: 280px 1fr 1fr 1fr;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .table-row:last-child {
+      border-bottom: 0;
+    }
+
+    .table-row > div {
+      padding: 18px 22px;
+      border-right: 2px solid var(--line);
+      font-size: 21px;
+      line-height: 1.3;
+    }
+
+    .table-row > div:last-child {
+      border-right: 0;
+    }
+
+    .table-row.header > div {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--brick);
+      text-transform: uppercase;
+    }
+
+    .table-row .name {
+      font-family: var(--font-display);
+      font-size: 27px;
+      color: var(--ink);
+    }
+
+    .dark .table {
+      border-color: var(--line-dark);
+      background: rgba(255, 250, 240, 0.05);
+    }
+
+    .dark .table-row,
+    .dark .table-row > div {
+      border-color: var(--line-dark);
+    }
+
+    .dark .table-row .name {
+      color: #f7f3e8;
+    }
+
+    /* === TITLE ARTWORK === */
+    .title-map {
+      position: absolute;
+      right: 36px;
+      top: 66px;
+      width: 540px;
+      height: 730px;
+      border: 2px solid var(--line-dark);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(247, 243, 232, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(247, 243, 232, 0.08) 1px, transparent 1px);
+      background-size: 54px 54px;
+    }
+
+    .title-map span {
+      position: absolute;
+      display: block;
+      border: 2px solid;
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.08);
+    }
+
+    .title-map span:nth-child(1) {
+      left: 46px;
+      top: 58px;
+      width: 330px;
+      height: 112px;
+      border-color: #92d49b;
+    }
+
+    .title-map span:nth-child(2) {
+      right: 48px;
+      top: 235px;
+      width: 268px;
+      height: 142px;
+      border-color: #ef8f71;
+    }
+
+    .title-map span:nth-child(3) {
+      left: 68px;
+      bottom: 160px;
+      width: 354px;
+      height: 152px;
+      border-color: #dfb762;
+    }
+
+    .title-map span:nth-child(4) {
+      left: 118px;
+      bottom: 54px;
+      width: 260px;
+      height: 64px;
+      border-color: #81a8d4;
+    }
+
+    /* === SLIDE CONTROLS === */
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border: 1px solid rgba(247, 243, 232, 0.24);
+      border-radius: 999px;
+      background: rgba(17, 19, 16, 0.72);
+      backdrop-filter: blur(12px);
+      color: #f7f3e8;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .deck-controls button,
+    .edit-toggle {
+      border: 1px solid rgba(247, 243, 232, 0.28);
+      border-radius: 999px;
+      background: transparent;
+      color: #f7f3e8;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 7px 11px;
+      cursor: pointer;
+    }
+
+    .deck-controls button:hover,
+    .edit-toggle:hover {
+      border-color: #92d49b;
+      color: #92d49b;
+    }
+
+    .progress {
+      width: 180px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(247, 243, 232, 0.18);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #92d49b;
+      transition: width 220ms ease;
+    }
+
+    .edit-hotzone {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 80px;
+      height: 80px;
+      z-index: 10000;
+      cursor: pointer;
+    }
+
+    .edit-toggle {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 10001;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+      background: rgba(17, 19, 16, 0.82);
+    }
+
+    .edit-toggle.show,
+    .edit-toggle.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .editing .editable {
+      outline: 2px dashed #92d49b;
+      outline-offset: 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-viewport">
+    <main class="deck-stage" id="deckStage">
+      <section class="slide dark title-slide active visible" aria-label="Tiêu đề">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s1-kicker">GiayOhoho / Laravel + React</div>
+          <h1 class="reveal editable" data-edit-id="s1-title">Bản đồ toàn bộ hệ thống</h1>
+          <p class="lead reveal editable" data-edit-id="s1-lead">Bản biểu diễn hệ thống bán giày GiàyOhoho: Laravel 12, React 18, PostgreSQL, PayOS, GHN, Google OAuth, mail outbox, admin, monitoring và Docker.</p>
+          <div class="title-map" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div class="tagline reveal"><span>16 trang slide</span><span>30 API controller</span><span>26 model</span><span>22 trang React</span></div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Tổng quan nhanh">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s2-kicker">01 / Tổng quan nhanh</div>
+          <h2 class="reveal editable" data-edit-id="s2-title">GiayOhoho là bản chuyển đổi đã có hình hài sản phẩm</h2>
+          <p class="lead reveal editable" data-edit-id="s2-lead">Mã nguồn hiện tại không chỉ là khung Laravel. Nó đã có schema chuẩn, dữ liệu mẫu bán giày, API tương thích hệ cũ, React SPA, nhà cung cấp thanh toán/vận chuyển và đường chạy Docker.</p>
+          <div class="grid-4 reveal">
+            <div class="panel metric"><strong>31</strong><span>controller Laravel, trong đó 30 controller nằm dưới API</span></div>
+            <div class="panel metric"><strong>186</strong><span>API route theo tài liệu process sau parity refresh</span></div>
+            <div class="panel metric"><strong>1</strong><span>migration chuẩn tạo toàn bộ schema PostgreSQL</span></div>
+            <div class="panel metric"><strong>6</strong><span>seeder tách theo vai trò, catalog và hoạt động khách hàng</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Kiến trúc tổng thể">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s3-kicker">02 / Kiến trúc</div>
+          <h2 class="reveal editable" data-edit-id="s3-title">Một ứng dụng Laravel phục vụ cả API và SPA</h2>
+          <div class="flow reveal" role="img" aria-label="Sơ đồ kiến trúc tổng thể">
+            <svg viewBox="0 0 1600 620">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"></path>
+                </marker>
+              </defs>
+              <path class="edge" d="M190 300 H405"></path>
+              <path class="edge" d="M670 300 H880"></path>
+              <path class="edge" d="M1145 215 H1345"></path>
+              <path class="edge" d="M1145 300 H1345"></path>
+              <path class="edge" d="M1145 385 H1345"></path>
+              <path class="edge" d="M1012 435 V530 H640"></path>
+              <rect class="box cool" x="40" y="230" width="250" height="140"></rect>
+              <text x="165" y="286" text-anchor="middle">Trình duyệt</text>
+              <text class="small" x="165" y="326" text-anchor="middle">Khách hàng / Admin</text>
+              <rect class="box blue" x="405" y="210" width="265" height="180"></rect>
+              <text x="538" y="276" text-anchor="middle">React 18 SPA</text>
+              <text class="small" x="538" y="316" text-anchor="middle">Vite, Router, MUI</text>
+              <rect class="box hot" x="880" y="160" width="265" height="270"></rect>
+              <text x="1013" y="248" text-anchor="middle">Laravel 12</text>
+              <text class="small" x="1013" y="288" text-anchor="middle">Routes -> Controller -> Model</text>
+              <text class="small" x="1013" y="324" text-anchor="middle">Sanctum, RBAC, services</text>
+              <rect class="box" x="1345" y="140" width="220" height="100"></rect>
+              <text x="1455" y="200" text-anchor="middle">PostgreSQL</text>
+              <rect class="box" x="1345" y="265" width="220" height="100"></rect>
+              <text x="1455" y="325" text-anchor="middle">PayOS / GHN</text>
+              <rect class="box" x="1345" y="390" width="220" height="100"></rect>
+              <text x="1455" y="450" text-anchor="middle">Mailpit / Ops</text>
+              <rect class="box cool" x="400" y="500" width="480" height="90"></rect>
+              <text x="640" y="555" text-anchor="middle">Docker Compose, queue DB, cache DB, monitoring tùy chọn</text>
+            </svg>
+          </div>
+          <div class="tagline reveal"><span>Laravel Sanctum</span><span>React Material UI</span><span>PostgreSQL 16</span><span>Docker Compose</span></div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Ma trận module">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s4-kicker">03 / Toàn bộ module</div>
+          <h2 class="reveal editable" data-edit-id="s4-title">Các ranh giới nghiệp vụ đã được port sang Laravel</h2>
+          <div class="module-grid reveal">
+            <div class="module-card"><b>auth</b><span class="count">Sanctum + refresh token</span><p>Đăng ký, đăng nhập, Google OAuth, reset mật khẩu, xác minh email, setup password, session revoke.</p></div>
+            <div class="module-card"><b>catalog</b><span class="count">product/category/media</span><p>Sản phẩm, biến thể, ảnh, tag, surface, size guide, search preview và media fallback.</p></div>
+            <div class="module-card"><b>commerce</b><span class="count">cart/order/coupon</span><p>Giỏ hàng, coupon có phạm vi, checkout idempotency, snapshot order item và trạng thái đơn.</p></div>
+            <div class="module-card"><b>payment</b><span class="count">PayOS + COD</span><p>Tạo link PayOS, return-status, cancel, sync, webhook signature và sổ sự kiện.</p></div>
+            <div class="module-card"><b>shipping</b><span class="count">GHN + fallback</span><p>Province/district/ward, quote, preview/create/sync/cancel/return/update COD, webhook GHN.</p></div>
+            <div class="module-card"><b>admin</b><span class="count">quản trị hệ thống</span><p>Dashboard, account, product, category, variant, coupon, order, review, size guide, monitoring.</p></div>
+            <div class="module-card"><b>profile</b><span class="count">khách hàng</span><p>Hồ sơ, địa chỉ, avatar, wishlist, review theo đơn đã giao và quản lý phiên đăng nhập.</p></div>
+            <div class="module-card"><b>mail</b><span class="count">mail outbox</span><p>Gửi mail reset/verify qua outbox, retry, dedupe key và Mailpit trong Docker.</p></div>
+            <div class="module-card"><b>support</b><span class="count">contact/policy/chatbot</span><p>Liên hệ có throttle, chính sách, chatbot endpoint và trang tư vấn React.</p></div>
+            <div class="module-card"><b>ops</b><span class="count">export/monitoring/docker</span><p>CSV Excel-compatible, monitoring proxy, Docker entrypoint, migrate/seed tự động.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Frontend React">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s5-kicker">04 / Frontend React</div>
+          <h2 class="reveal editable" data-edit-id="s5-title">React SPA giữ chất GiayOhoho và phủ lại toàn bộ hành trình</h2>
+          <div class="two-col reveal">
+            <div class="panel">
+              <h3>Khách hàng</h3>
+              <ul class="list">
+                <li>Trang chủ, danh sách sản phẩm, chi tiết sản phẩm, sale, wishlist.</li>
+                <li>Giỏ hàng, checkout, đơn hàng, chi tiết đơn, PayOS return/cancel.</li>
+                <li>Đăng nhập, đăng ký, quên/đặt lại mật khẩu, xác minh email, setup password.</li>
+                <li>Liên hệ, chính sách, chatbot và header search gọi search preview.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Admin</h3>
+              <ul class="list">
+                <li>Dashboard, users/accounts, products, categories, variants.</li>
+                <li>Orders, order detail, coupons, reviews, size guides, sale prices.</li>
+                <li>Monitoring đọc summary/logs từ backend facade.</li>
+                <li>Auth guard kiểm tra token, role ADMIN và yêu cầu setup password.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="tagline reveal"><span>React Router</span><span>Material UI 5</span><span>Axios API client</span><span>Vite 7</span></div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Backend Laravel">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s6-kicker">05 / Backend Laravel</div>
+          <h2 class="reveal editable" data-edit-id="s6-title">Laravel gom contract cũ thành API thống nhất</h2>
+          <div class="three-col reveal">
+            <div class="panel">
+              <div class="card-title"><h3>Bề mặt route</h3><span class="badge">API</span></div>
+              <p>`routes/api.php` mở catalog công khai, auth, khách hàng, webhook nhà cung cấp và route admin qua `auth:sanctum` + `role:admin`.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>Lớp controller</h3><span class="badge">30</span></div>
+              <p>Controller tách theo domain: Auth, Product, Cart, Order, Payment, Shipping, Review, Admin và Monitoring.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>Lớp service</h3><span class="badge">12</span></div>
+              <p>Service xử lý nhà cung cấp ngoài, token, giảm giá và mail outbox thay vì nhồi logic vào controller.</p>
+            </div>
+          </div>
+          <div class="rail reveal" style="margin-top: 48px;">
+            <div class="rail-item"><strong>Middleware</strong><span>CorsMiddleware và RoleMiddleware bảo vệ API theo role admin.</span></div>
+            <div class="rail-item"><strong>Model</strong><span>26 model Eloquent biểu diễn tài khoản, catalog, commerce, payment, shipping và mail.</span></div>
+            <div class="rail-item"><strong>Compatibility</strong><span>Nhiều alias route giữ contract với frontend và Postman collection cũ.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Auth và phiên">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s7-kicker">06 / Auth + phiên</div>
+          <h2 class="reveal editable" data-edit-id="s7-title">Tài khoản không chỉ đăng nhập, mà có vòng đời đầy đủ</h2>
+          <div class="flow reveal" role="img" aria-label="Vòng đời auth GiayOhoho">
+            <svg viewBox="0 0 1500 610">
+              <defs>
+                <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"></path>
+                </marker>
+              </defs>
+              <path class="edge" style="marker-end:url(#arrow2)" d="M235 292 H430"></path>
+              <path class="edge" style="marker-end:url(#arrow2)" d="M655 292 H855"></path>
+              <path class="edge" style="marker-end:url(#arrow2)" d="M1085 292 H1265"></path>
+              <path class="edge" style="marker-end:url(#arrow2)" d="M540 380 V500 H1180"></path>
+              <rect class="box cool" x="40" y="220" width="195" height="145"></rect>
+              <text x="138" y="282" text-anchor="middle">Đăng nhập</text>
+              <text class="small" x="138" y="318" text-anchor="middle">email / Google</text>
+              <rect class="box hot" x="430" y="210" width="225" height="165"></rect>
+              <text x="543" y="272" text-anchor="middle">AuthController</text>
+              <text class="small" x="543" y="310" text-anchor="middle">Sanctum + refresh</text>
+              <rect class="box blue" x="855" y="210" width="230" height="165"></rect>
+              <text x="970" y="272" text-anchor="middle">RefreshTokenService</text>
+              <text class="small" x="970" y="310" text-anchor="middle">rotate + revoke</text>
+              <rect class="box" x="1265" y="220" width="210" height="145"></rect>
+              <text x="1370" y="282" text-anchor="middle">RBAC</text>
+              <text class="small" x="1370" y="318" text-anchor="middle">Role + Permission</text>
+              <rect class="box cool" x="960" y="465" width="440" height="90"></rect>
+              <text x="1180" y="520" text-anchor="middle">auth_tokens, account_login_events, sessions</text>
+            </svg>
+          </div>
+          <div class="tagline reveal"><span>GoogleOAuthService</span><span>AuthTokenService</span><span>AccountSessionController</span><span>RolePermissionSeeder</span></div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Catalog">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s8-kicker">07 / Catalog + media</div>
+          <h2 class="reveal editable" data-edit-id="s8-title">Catalog giày được dựng quanh biến thể, ảnh và tìm kiếm</h2>
+          <div class="table reveal">
+            <div class="table-row header"><div>Vùng</div><div>Model</div><div>API / UI</div><div>Điểm nhấn</div></div>
+            <div class="table-row"><div class="name">Sản phẩm</div><div>Product, ProductVariant, ProductSpecsShoes</div><div>Products, ProductDetail, AdminProducts</div><div>Slug, SKU, stock, original price, sale price, soft delete</div></div>
+            <div class="table-row"><div class="name">Phân loại</div><div>Category, Surface, Tag, ProductSizeGuide</div><div>Category API, admin size guides</div><div>Scope theo brand/product và unique active guide</div></div>
+            <div class="table-row"><div class="name">Ảnh</div><div>ProductImage, ProductMediaController</div><div>Ảnh thật hoặc SVG fallback</div><div>Ảnh chính, thứ tự hiển thị, object name, content type</div></div>
+            <div class="table-row"><div class="name">Tín hiệu</div><div>Review, Wishlist</div><div>Duyệt đánh giá, route wishlist</div><div>Review theo phạm vi đơn hàng và trạng thái PENDING/APPROVED/REJECTED</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Commerce">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s9-kicker">08 / Cart + order + coupon</div>
+          <h2 class="reveal editable" data-edit-id="s9-title">Checkout tập trung vào dữ liệu đơn hàng không đổi theo thời gian</h2>
+          <div class="two-col reveal">
+            <div class="panel">
+              <h3>Luồng mua hàng</h3>
+              <ul class="list">
+                <li>Giỏ hàng gắn tài khoản, coupon và các item theo product variant.</li>
+                <li>Checkout tạo `order_details`, `order_item` và snapshot sản phẩm/biến thể/ảnh.</li>
+                <li>Đơn hàng có idempotency key, status, payment method và thông tin GHN snapshot.</li>
+                <li>Khách hàng xem danh sách đơn, chi tiết đơn và hủy đơn khi còn hợp lệ.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Coupon</h3>
+              <ul class="list">
+                <li>Coupon có version, usage limit, min purchase và max discount.</li>
+                <li>Applicable scope gồm ALL, BRAND, PRODUCT và VARIANT.</li>
+                <li>`account_coupons` ghi coupon đã dùng theo account/order.</li>
+                <li>DiscountCalculator hỗ trợ fixed, percentage và seasonal sale.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="tagline reveal"><span>CartController</span><span>OrderController</span><span>CouponController</span><span>DiscountCalculator</span></div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Thanh toán và vận chuyển">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s10-kicker">09 / Thanh toán + vận chuyển</div>
+          <h2 class="reveal editable" data-edit-id="s10-title">Nhà cung cấp ngoài có ranh giới và sổ sự kiện riêng</h2>
+          <div class="three-col reveal">
+            <div class="panel">
+              <div class="card-title"><h3>PayOS</h3><span class="badge">QR</span></div>
+              <p>PayOsService tạo liên kết thanh toán, ký HMAC, xác thực webhook, đồng bộ trạng thái và chuẩn hóa PAID/CANCELLED/FAILED.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>GHN</h3><span class="badge">Giao</span></div>
+              <p>GhnClient gọi dữ liệu gốc, phí, leadtime, preview/create/detail/cancel/return/update COD/print token.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>Sổ dữ liệu</h3><span class="badge">DB</span></div>
+              <p>`payment_events`, `payment_webhook_events`, `shipping_events` và unique idempotency key giúp tránh xử lý lặp.</p>
+            </div>
+          </div>
+          <div class="flow reveal" style="height: 340px;" role="img" aria-label="Bàn giao nhà cung cấp">
+            <svg viewBox="0 0 1500 310">
+              <defs>
+                <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"></path>
+                </marker>
+              </defs>
+              <path class="edge" style="marker-end:url(#arrow3)" d="M230 155 H440"></path>
+              <path class="edge" style="marker-end:url(#arrow3)" d="M650 155 H855"></path>
+              <path class="edge" style="marker-end:url(#arrow3)" d="M1070 155 H1275"></path>
+              <rect class="box cool" x="40" y="90" width="190" height="130"></rect>
+              <text x="135" y="164" text-anchor="middle">Đơn hàng</text>
+              <rect class="box hot" x="440" y="90" width="210" height="130"></rect>
+              <text x="545" y="164" text-anchor="middle">PaymentDetail</text>
+              <rect class="box blue" x="855" y="90" width="215" height="130"></rect>
+              <text x="963" y="164" text-anchor="middle">PayOS / COD</text>
+              <rect class="box cool" x="1275" y="90" width="190" height="130"></rect>
+              <text x="1370" y="164" text-anchor="middle">ShippingOrder</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Admin">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s11-kicker">10 / Không gian admin</div>
+          <h2 class="reveal editable" data-edit-id="s11-title">Admin là bề mặt vận hành, không chỉ là CRUD</h2>
+          <div class="grid-4 reveal">
+            <div class="panel metric"><strong>Tài khoản</strong><span>Quản lý trạng thái, role, xóa mềm/khôi phục và phiên đăng nhập.</span></div>
+            <div class="panel metric"><strong>Catalog</strong><span>Sản phẩm, ảnh, biến thể, danh mục, size guide và giá sale.</span></div>
+            <div class="panel metric"><strong>Đơn hàng</strong><span>Danh sách đơn, chi tiết, chuyển trạng thái, shipping GHN và trạng thái thanh toán.</span></div>
+            <div class="panel metric"><strong>Tín hiệu</strong><span>Dashboard, duyệt đánh giá, thống kê coupon, xuất CSV và monitoring.</span></div>
+          </div>
+          <div class="tagline reveal"><span>role:admin</span><span>AdminExportController</span><span>AdminMonitoringController</span><span>CSV Excel-compatible</span></div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Dữ liệu">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s12-kicker">11 / Dữ liệu PostgreSQL</div>
+          <h2 class="reveal editable" data-edit-id="s12-title">Một migration chuẩn tạo toàn bộ trạng thái cuối</h2>
+          <div class="three-col reveal">
+            <div class="panel">
+              <div class="card-title"><h3>Auth/RBAC</h3><span class="badge">DB</span></div>
+              <p>`accounts`, `roles`, `permissions`, `profiles`, `refresh_tokens`, `auth_tokens`, `account_login_events`.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>Catalog/Commerce</h3><span class="badge">Giày</span></div>
+              <p>Bảng categories, products, variants, images, reviews, wishlist, cart, order, coupon và snapshot đơn hàng.</p>
+            </div>
+            <div class="panel">
+              <div class="card-title"><h3>Provider + vận hành</h3><span class="badge">Hạ tầng</span></div>
+              <p>Payment, shipping, mail outbox, jobs, cache, sessions, failed jobs và product size guides.</p>
+            </div>
+          </div>
+          <div class="rail reveal" style="margin-top: 52px;">
+            <div class="rail-item"><strong>PostgreSQL</strong><span>Dùng partial indexes, check constraints, payload JSON/text và extension `pg_trgm`.</span></div>
+            <div class="rail-item"><strong>Tìm kiếm</strong><span>Trigram indexes cho tên sản phẩm, brand, tên danh mục, SKU, màu và size.</span></div>
+            <div class="rail-item"><strong>Toàn vẹn</strong><span>Unique idempotency key, webhook key và review theo account/product/order.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Seed và migration">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s13-kicker">12 / Seeder + dữ liệu mẫu</div>
+          <h2 class="reveal editable" data-edit-id="s13-title">Seeder biến hệ thống thành cửa hàng demo có dữ liệu thật</h2>
+          <div class="rail reveal" style="margin-top: 58px;">
+            <div class="rail-item"><strong>RolePermissionSeeder</strong><span>Tạo ADMIN, CUSTOMER, STAFF và quyền theo module account/product/order/dashboard/payment/coupon/shipping.</span></div>
+            <div class="rail-item"><strong>AccountSeeder</strong><span>Tạo admin và hai tài khoản khách hàng mặc định với mật khẩu `123456`.</span></div>
+            <div class="rail-item"><strong>ReferenceCatalogSeeder</strong><span>Tạo danh mục, surface và tag nền cho catalog giày.</span></div>
+            <div class="rail-item"><strong>ProductCatalogSeeder</strong><span>Chuyển dữ liệu từ DataSeeder Java: 100 sản phẩm, 502 biến thể và ảnh sản phẩm.</span></div>
+            <div class="rail-item"><strong>CustomerActivitySeeder</strong><span>Tạo review, wishlist và cart mẫu để demo hành trình khách hàng.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Hạ tầng và vận hành">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s14-kicker">13 / Docker + vận hành</div>
+          <h2 class="reveal editable" data-edit-id="s14-title">Đường chạy local được đóng gói để dựng nhanh</h2>
+          <div class="two-col reveal">
+            <div class="panel">
+              <h3>Docker Compose</h3>
+              <ul class="list">
+                <li>`app` build Laravel + Vite assets và chạy tại cổng 8000.</li>
+                <li>`postgres` dùng PostgreSQL 16 với healthcheck.</li>
+                <li>`mailpit` phục vụ SMTP và UI xem mail tại cổng 8025.</li>
+                <li>Entrypoint chờ DB, migrate, seed nếu `RUN_SEEDERS=true`.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Cấu hình nhà cung cấp</h3>
+              <ul class="list">
+                <li>PayOS qua `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`.</li>
+                <li>GHN có thể bật/tắt bằng `GHN_ENABLED`, fallback local khi demo.</li>
+                <li>Google OAuth nhận ID token qua `/api/auth/google`.</li>
+                <li>Monitoring proxy tùy chọn cho Prometheus, Loki và Grafana.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="tagline reveal"><span>http://localhost:8000</span><span>/api/health</span><span>Mailpit 8025</span><span>PostgreSQL 5432</span></div>
+        </div>
+      </section>
+
+      <section class="slide dark" aria-label="Kiểm thử và rủi ro">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s15-kicker">14 / Kiểm thử + rủi ro</div>
+          <h2 class="reveal editable" data-edit-id="s15-title">Hệ thống đã qua nhiều lớp kiểm tra, nhưng vẫn còn điểm cần xác minh thật</h2>
+          <div class="two-col reveal">
+            <div class="panel">
+              <h3>Đã kiểm tra</h3>
+              <ul class="list">
+                <li>PHP lint các tệp đổi trong app, routes, database.</li>
+                <li>`php artisan route:list --path=api` đạt theo nhật ký, 186 API routes.</li>
+                <li>`npm run build` đạt với Vite, Docker compose config đạt.</li>
+                <li>HTTP smoke test từng đạt cho `/`, `/contact`, `/admin/monitoring`, `/api/health`.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Cần nhớ khi bảo vệ</h3>
+              <ul class="list">
+                <li>Chưa chạy `docker compose up --build` và migrate PostgreSQL thật trong lượt nhật ký.</li>
+                <li>PayOS, GHN, Google OAuth cần credential thật khi chạy production.</li>
+                <li>CSV export tương thích Excel, chưa phải XLSX native.</li>
+                <li>Bundle frontend còn cảnh báo chunk chính lớn hơn 500 kB.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" aria-label="Kết thúc">
+        <div class="slide-inner">
+          <div class="kicker reveal editable" data-edit-id="s16-kicker">15 / Cách trình bày</div>
+          <h2 class="reveal editable" data-edit-id="s16-title">Kể GiayOhoho như một bản chuyển đổi thành sản phẩm hoàn chỉnh</h2>
+          <div class="rail reveal" style="margin-top: 58px;">
+            <div class="rail-item"><strong>1. Bài toán</strong><span>Đưa hệ bán giày Spring/Vue sang Laravel/React nhưng vẫn giữ hợp đồng API, dữ liệu và UI đặc trưng.</span></div>
+            <div class="rail-item"><strong>2. Kiến trúc</strong><span>Laravel 12 làm API + app shell, React/MUI làm SPA, PostgreSQL là nguồn dữ liệu chuẩn.</span></div>
+            <div class="rail-item"><strong>3. Module</strong><span>Auth, catalog, commerce, payment, shipping, admin, mail, support và ops đều có ranh giới riêng.</span></div>
+            <div class="rail-item"><strong>4. Kết quả</strong><span>Một hệ thống B2C có dữ liệu demo, nhà cung cấp thật/fallback, Docker và tài liệu vận hành.</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="deck-controls" aria-label="Điều khiển slide">
+    <button type="button" id="prevBtn" aria-label="Slide trước">Trước</button>
+    <span id="slideCount">1 / 16</span>
+    <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+    <button type="button" id="nextBtn" aria-label="Slide tiếp">Tiếp</button>
+  </div>
+
+  <div class="edit-hotzone" title="Chế độ sửa"></div>
+  <button class="edit-toggle" id="editToggle" type="button" title="Chế độ sửa (E)">Sửa</button>
+
+  <script>
+    /* === SLIDE PRESENTATION CONTROLLER === */
+    class SlidePresentation {
+      constructor() {
+        this.slides = Array.from(document.querySelectorAll(".slide"));
+        this.stage = document.getElementById("deckStage");
+        this.currentSlide = 0;
+        this.lastWheelAt = 0;
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        this.setupButtons();
+        this.showSlide(0);
+      }
+
+      setupStageScale() {
+        const scale = () => {
+          const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+          const x = (window.innerWidth - 1920 * factor) / 2;
+          const y = (window.innerHeight - 1080 * factor) / 2;
+          this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener("resize", scale);
+      }
+
+      setupKeyboardNav() {
+        document.addEventListener("keydown", (event) => {
+          const editingText = event.target && event.target.getAttribute && event.target.getAttribute("contenteditable") === "true";
+          if (editingText) return;
+          if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+            event.preventDefault();
+            this.next();
+          }
+          if (["ArrowLeft", "PageUp"].includes(event.key)) {
+            event.preventDefault();
+            this.prev();
+          }
+          if (event.key === "Home") this.showSlide(0);
+          if (event.key === "End") this.showSlide(this.slides.length - 1);
+        });
+      }
+
+      setupTouchNav() {
+        let startX = 0;
+        let startY = 0;
+        window.addEventListener("touchstart", (event) => {
+          startX = event.changedTouches[0].clientX;
+          startY = event.changedTouches[0].clientY;
+        }, { passive: true });
+        window.addEventListener("touchend", (event) => {
+          const dx = event.changedTouches[0].clientX - startX;
+          const dy = event.changedTouches[0].clientY - startY;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+            dx < 0 ? this.next() : this.prev();
+          }
+        }, { passive: true });
+      }
+
+      setupWheelNav() {
+        window.addEventListener("wheel", (event) => {
+          const now = Date.now();
+          if (now - this.lastWheelAt < 650) return;
+          if (Math.abs(event.deltaY) < 28) return;
+          this.lastWheelAt = now;
+          event.deltaY > 0 ? this.next() : this.prev();
+        }, { passive: true });
+      }
+
+      setupButtons() {
+        document.getElementById("prevBtn").addEventListener("click", () => this.prev());
+        document.getElementById("nextBtn").addEventListener("click", () => this.next());
+      }
+
+      showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+          slide.classList.toggle("active", i === this.currentSlide);
+          slide.classList.toggle("visible", i === this.currentSlide);
+        });
+        document.getElementById("slideCount").textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+        document.getElementById("progressBar").style.width = `${((this.currentSlide + 1) / this.slides.length) * 100}%`;
+      }
+
+      next() {
+        this.showSlide(this.currentSlide + 1);
+      }
+
+      prev() {
+        this.showSlide(this.currentSlide - 1);
+      }
+    }
+
+    /* === INLINE EDITOR === */
+    class InlineDeckEditor {
+      constructor() {
+        this.isActive = false;
+        this.storagePrefix = "giayohoho-project-deck-vi:";
+        this.editables = Array.from(document.querySelectorAll(".editable"));
+        this.editables.forEach((node) => {
+          const stored = localStorage.getItem(this.storagePrefix + node.dataset.editId);
+          if (stored !== null) node.innerHTML = stored;
+        });
+      }
+
+      toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle("editing", this.isActive);
+        document.getElementById("editToggle").classList.toggle("active", this.isActive);
+        this.editables.forEach((node) => {
+          node.setAttribute("contenteditable", this.isActive ? "true" : "false");
+        });
+      }
+
+      save() {
+        this.editables.forEach((node) => {
+          localStorage.setItem(this.storagePrefix + node.dataset.editId, node.innerHTML);
+        });
+      }
+    }
+
+    /* === BOOTSTRAP === */
+    const deck = new SlidePresentation();
+    const editor = new InlineDeckEditor();
+    const hotzone = document.querySelector(".edit-hotzone");
+    const editToggle = document.getElementById("editToggle");
+    let hideTimeout = null;
+
+    editToggle.addEventListener("click", () => editor.toggleEditMode());
+    hotzone.addEventListener("click", () => editor.toggleEditMode());
+    hotzone.addEventListener("mouseenter", () => {
+      clearTimeout(hideTimeout);
+      editToggle.classList.add("show");
+    });
+    hotzone.addEventListener("mouseleave", () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editToggle.classList.remove("show");
+      }, 400);
+    });
+    editToggle.addEventListener("mouseenter", () => clearTimeout(hideTimeout));
+    editToggle.addEventListener("mouseleave", () => {
+      hideTimeout = setTimeout(() => {
+        if (!editor.isActive) editToggle.classList.remove("show");
+      }, 400);
+    });
+    document.addEventListener("keydown", (event) => {
+      const editingText = event.target && event.target.getAttribute && event.target.getAttribute("contenteditable") === "true";
+      if ((event.key === "e" || event.key === "E") && !editingText) {
+        editor.toggleEditMode();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        editor.save();
+      }
+    });
+  </script>
+</body>
+</html>

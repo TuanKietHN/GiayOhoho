@@ -214,6 +214,8 @@ return new class extends Migration
         Schema::create('account_login_events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('account_id')->nullable()->constrained('accounts')->nullOnDelete();
+            $table->foreignId('actor_account_id')->nullable()->constrained('accounts')->nullOnDelete();
+            $table->uuid('session_id')->nullable();
             $table->string('email');
             $table->string('event_type', 50);
             $table->boolean('success');
@@ -224,6 +226,8 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
 
             $table->index(['account_id', 'created_at']);
+            $table->index(['actor_account_id', 'created_at']);
+            $table->index(['account_id', 'session_id', 'created_at']);
             $table->index(['email', 'created_at']);
             $table->index(['event_type', 'created_at']);
         });
@@ -233,16 +237,24 @@ return new class extends Migration
             $table->string('token', 64)->unique();
             $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete();
             $table->string('device_fingerprint', 128)->nullable();
+            $table->uuid('session_id')->nullable();
+            $table->string('device_id', 128)->nullable();
+            $table->string('auth_provider', 32)->nullable();
             $table->string('user_agent', 512)->nullable();
             $table->string('ip_address', 100)->nullable();
+            $table->timestamp('session_created_at')->nullable();
+            $table->timestamp('last_seen_at')->nullable();
             $table->timestamp('expires_at');
             $table->timestamp('revoked_at')->nullable();
             $table->string('replaced_by_token', 64)->nullable();
+            $table->string('rotation_claim_id', 64)->nullable();
             $table->unsignedBigInteger('expiration_in_seconds')->nullable();
             $table->timestamps();
 
             $table->index(['account_id', 'revoked_at']);
             $table->index('device_fingerprint');
+            $table->index('session_id');
+            $table->index(['account_id', 'session_id', 'revoked_at']);
             $table->index('expires_at');
         });
 
@@ -709,5 +721,12 @@ return new class extends Migration
         DB::statement('CREATE UNIQUE INDEX uq_payment_details_webhook_key_not_null ON payment_details (webhook_idempotency_key) WHERE webhook_idempotency_key IS NOT NULL');
         DB::statement('CREATE UNIQUE INDEX uq_product_size_guides_product_active ON product_size_guides (product_id) WHERE product_id IS NOT NULL AND deleted_at IS NULL');
         DB::statement('CREATE UNIQUE INDEX uq_reviews_account_product_order ON reviews (account_id, product_id, order_id) WHERE order_id IS NOT NULL');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+        DB::statement('CREATE INDEX idx_products_name_trgm_active ON products USING gin (LOWER(name) gin_trgm_ops) WHERE deleted_at IS NULL');
+        DB::statement('CREATE INDEX idx_products_brand_trgm_active ON products USING gin (LOWER(brand) gin_trgm_ops) WHERE deleted_at IS NULL');
+        DB::statement('CREATE INDEX idx_categories_name_trgm ON categories USING gin (LOWER(name) gin_trgm_ops)');
+        DB::statement('CREATE INDEX idx_product_variants_sku_trgm_active ON product_variants USING gin (LOWER(sku) gin_trgm_ops) WHERE deleted_at IS NULL');
+        DB::statement('CREATE INDEX idx_product_variants_color_trgm_active ON product_variants USING gin (LOWER(color) gin_trgm_ops) WHERE deleted_at IS NULL');
+        DB::statement('CREATE INDEX idx_product_variants_size_trgm_active ON product_variants USING gin (LOWER(size) gin_trgm_ops) WHERE deleted_at IS NULL');
     }
 };

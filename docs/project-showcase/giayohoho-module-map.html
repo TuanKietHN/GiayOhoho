@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GiàyOhoho - Bản đồ module</title>
+<script>
+  /* Áp dụng giao diện trước khi vẽ để tránh nhấp nháy giữa sáng/tối. */
+  (function () {
+    const saved = localStorage.getItem("giayohoho-module-map-theme");
+    const dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", dark);
+  })();
+</script>
+<style>
+  /* === THEME === */
+  :root {
+    --bg: #f7f3e8;
+    --surface: #fffaf0;
+    --surface-2: #eee4d3;
+    --ink: #171713;
+    --body: #4e493f;
+    --muted: #81786b;
+    --line: #d8cbbb;
+    --line-soft: #e8decf;
+    --zone: rgba(23, 23, 19, 0.035);
+    --node: #fffaf0;
+    --node-soft: rgba(255, 250, 240, 0.82);
+    --leaf: #4f8d5b;
+    --leaf-soft: rgba(79, 141, 91, 0.15);
+    --brick: #c85f43;
+    --brick-soft: rgba(200, 95, 67, 0.14);
+    --blue: #2f5f8f;
+    --blue-soft: rgba(47, 95, 143, 0.14);
+    --gold: #b9892e;
+    --gold-soft: rgba(185, 137, 46, 0.16);
+    --edge: #81786b;
+    --shadow: rgba(23, 23, 19, 0.12);
+    --font-display: "Segoe UI", sans-serif;
+    --font-body: "Segoe UI", sans-serif;
+    --font-mono: "Consolas", monospace;
+  }
+
+  html.dark {
+    --bg: #111310;
+    --surface: #1d1f19;
+    --surface-2: #292b23;
+    --ink: #f7f3e8;
+    --body: #d8cbbb;
+    --muted: #a09687;
+    --line: #494338;
+    --line-soft: #332e27;
+    --zone: rgba(247, 243, 232, 0.035);
+    --node: #1d1f19;
+    --node-soft: rgba(247, 243, 232, 0.055);
+    --leaf: #92d49b;
+    --leaf-soft: rgba(146, 212, 155, 0.13);
+    --brick: #ef8f71;
+    --brick-soft: rgba(239, 143, 113, 0.13);
+    --blue: #86aee4;
+    --blue-soft: rgba(134, 174, 228, 0.13);
+    --gold: #dfb762;
+    --gold-soft: rgba(223, 183, 98, 0.13);
+    --edge: #a09687;
+    --shadow: rgba(0, 0, 0, 0.28);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--body);
+    font-family: var(--font-body);
+    overflow: hidden;
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === TOP BAR === */
+  .bar {
+    height: 74px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+  }
+
+  .brand h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+
+  .brand .sub {
+    margin-top: 2px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .chip,
+  #themeToggle {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 12px;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    transition: all 150ms ease;
+  }
+
+  .chip:hover,
+  #themeToggle:hover {
+    color: var(--ink);
+    border-color: var(--muted);
+  }
+
+  .chip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+  }
+
+  /* === SVG STAGE === */
+  .stage {
+    position: relative;
+    height: calc(100% - 74px);
+    min-height: 0;
+  }
+
+  .stage svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .zone rect {
+    fill: var(--zone);
+    stroke: var(--line);
+    stroke-width: 1.2;
+    stroke-dasharray: 7 5;
+    rx: 16;
+  }
+
+  .zone .title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--muted);
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .zone .caption {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--muted);
+    opacity: 0.84;
+  }
+
+  .node {
+    cursor: pointer;
+    transition: opacity 180ms ease;
+  }
+
+  .node rect {
+    fill: var(--node);
+    stroke: var(--line);
+    stroke-width: 1.6;
+    rx: 10;
+    filter: drop-shadow(0 8px 14px var(--shadow));
+    transition: stroke 150ms ease, fill 150ms ease;
+  }
+
+  .node:hover rect,
+  .node.sel rect {
+    stroke: var(--brick);
+    stroke-width: 2.5;
+  }
+
+  .node.front rect {
+    fill: var(--leaf-soft);
+    stroke: var(--leaf);
+  }
+
+  .node.module rect {
+    fill: var(--brick-soft);
+    stroke: var(--brick);
+  }
+
+  .node.data rect {
+    fill: var(--blue-soft);
+    stroke: var(--blue);
+  }
+
+  .node.ext rect {
+    fill: var(--gold-soft);
+    stroke: var(--gold);
+    stroke-dasharray: 6 3;
+  }
+
+  .node.ops rect {
+    fill: var(--node-soft);
+    stroke: var(--line);
+  }
+
+  .node .name {
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: var(--ink);
+    pointer-events: none;
+  }
+
+  .node .meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--muted);
+    pointer-events: none;
+  }
+
+  .node .tiny {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    fill: var(--muted);
+    pointer-events: none;
+  }
+
+  .edge {
+    stroke: var(--edge);
+    stroke-width: 1.7;
+    fill: none;
+    marker-end: url(#arrow-muted);
+    transition: opacity 180ms ease, stroke 180ms ease;
+  }
+
+  .edge.dash {
+    stroke-dasharray: 6 5;
+  }
+
+  .elabel {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--muted);
+    opacity: 0.88;
+    transition: opacity 180ms ease, fill 180ms ease;
+  }
+
+  /* === FLOW HIGHLIGHT === */
+  .stage.flowing .node {
+    opacity: 0.25;
+  }
+
+  .stage.flowing .edge,
+  .stage.flowing .elabel,
+  .stage.flowing .zone {
+    opacity: 0.16;
+  }
+
+  .stage.flowing .node.lit,
+  .stage.flowing .zone {
+    opacity: 1;
+  }
+
+  .stage.flowing .edge.lit {
+    opacity: 1;
+    stroke: var(--brick);
+    marker-end: url(#arrow-hot);
+    stroke-width: 2.4;
+    stroke-dasharray: 8 6;
+    animation: march 900ms linear infinite;
+  }
+
+  .stage.flowing .elabel.lit {
+    opacity: 1;
+    fill: var(--brick);
+  }
+
+  @keyframes march {
+    to { stroke-dashoffset: -14; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage.flowing .edge.lit {
+      animation: none;
+    }
+  }
+
+  /* === DETAIL CARDS === */
+  .card {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px var(--shadow);
+    padding: 16px 18px;
+  }
+
+  #detail {
+    right: 18px;
+    bottom: 18px;
+    width: 405px;
+  }
+
+  #detail h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0;
+    margin-bottom: 4px;
+  }
+
+  #detail .meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    letter-spacing: 0;
+  }
+
+  #detail p {
+    font-size: 13.4px;
+    line-height: 1.56;
+  }
+
+  #detail code,
+  #flowcap code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--brick);
+  }
+
+  #flowcap {
+    left: 18px;
+    bottom: 18px;
+    width: 500px;
+    display: none;
+  }
+
+  #flowcap.show {
+    display: block;
+  }
+
+  #flowcap .flow-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brick);
+    text-transform: uppercase;
+    letter-spacing: 0;
+    margin-bottom: 8px;
+  }
+
+  #flowcap ol {
+    padding-left: 19px;
+  }
+
+  #flowcap li {
+    font-size: 13px;
+    line-height: 1.54;
+    margin-bottom: 4px;
+  }
+
+  .source {
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.82;
+  }
+
+  @media (max-width: 980px) {
+    body {
+      overflow: auto;
+    }
+
+    .bar {
+      height: auto;
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .stage {
+      height: 76vh;
+      min-height: 640px;
+    }
+
+    #detail,
+    #flowcap {
+      position: static;
+      width: auto;
+      margin: 12px 18px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="brand">
+      <h1>GiàyOhoho - bản đồ toàn hệ thống</h1>
+      <div class="sub">Laravel 12 + React 18 + PostgreSQL + PayOS/GHN + Docker</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="chips" id="chips">
+      <button class="chip on" data-flow="all">Tất cả</button>
+      <button class="chip" data-flow="purchase">Mua hàng</button>
+      <button class="chip" data-flow="auth">Xác thực</button>
+      <button class="chip" data-flow="admin">Quản trị</button>
+      <button class="chip" data-flow="payShip">Thanh toán + giao</button>
+      <button class="chip" data-flow="data">Dữ liệu</button>
+      <button class="chip" data-flow="ops">Vận hành</button>
+    </div>
+    <button id="themeToggle" type="button">Giao diện</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg viewBox="0 0 1640 880" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bản đồ kiến trúc module GiàyOhoho">
+      <defs>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill: var(--edge)"></path>
+        </marker>
+        <marker id="arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" style="fill: var(--brick)"></path>
+        </marker>
+      </defs>
+
+      <!-- Vùng giúp đọc kiến trúc theo lớp. -->
+      <g class="zone" id="z-users">
+        <rect x="34" y="86" width="202" height="660"></rect>
+        <text class="title" x="56" y="118">Người dùng</text>
+        <text class="caption" x="56" y="137">khách, admin, nhà cung cấp</text>
+      </g>
+      <g class="zone" id="z-react">
+        <rect x="274" y="86" width="276" height="660"></rect>
+        <text class="title" x="296" y="118">React SPA</text>
+        <text class="caption" x="296" y="137">Vite, Router, Material UI</text>
+      </g>
+      <g class="zone" id="z-laravel">
+        <rect x="586" y="86" width="496" height="660"></rect>
+        <text class="title" x="608" y="118">Laravel API</text>
+        <text class="caption" x="608" y="137">routes, controllers, services</text>
+      </g>
+      <g class="zone" id="z-data">
+        <rect x="1118" y="86" width="246" height="660"></rect>
+        <text class="title" x="1140" y="118">Dữ liệu</text>
+        <text class="caption" x="1140" y="137">schema, seed, DB runtime</text>
+      </g>
+      <g class="zone" id="z-external">
+        <rect x="1400" y="86" width="208" height="660"></rect>
+        <text class="title" x="1422" y="118">Ngoài hệ thống</text>
+        <text class="caption" x="1422" y="137">PayOS, GHN, mail, ops</text>
+      </g>
+
+      <!-- Luồng tích hợp giữa các vùng. -->
+      <path class="edge" id="e-customer-spa" d="M210,206 C250,206 260,190 294,190"></path>
+      <path class="edge" id="e-admin-spa" d="M210,338 C250,338 260,624 294,624"></path>
+      <path class="edge" id="e-provider-api" d="M210,540 C302,540 410,540 606,540"></path>
+      <path class="edge" id="e-spa-api" d="M520,252 C552,252 565,252 606,252"></path>
+      <path class="edge" id="e-api-auth" d="M776,176 C812,176 838,176 862,176"></path>
+      <path class="edge" id="e-api-catalog" d="M776,252 C812,252 838,252 862,252"></path>
+      <path class="edge" id="e-api-commerce" d="M776,330 C812,330 838,330 862,330"></path>
+      <path class="edge" id="e-api-payment" d="M776,408 C812,408 838,408 862,408"></path>
+      <path class="edge" id="e-api-shipping" d="M776,486 C812,486 838,486 862,486"></path>
+      <path class="edge" id="e-api-admin" d="M776,642 C812,642 838,642 862,642"></path>
+      <path class="edge" id="e-auth-db" d="M1030,176 C1074,176 1090,178 1138,178"></path>
+      <path class="edge" id="e-catalog-db" d="M1030,252 C1074,252 1090,250 1138,250"></path>
+      <path class="edge" id="e-commerce-db" d="M1030,330 C1074,330 1090,322 1138,322"></path>
+      <path class="edge" id="e-provider-db" d="M1030,448 C1074,448 1090,394 1138,394"></path>
+      <path class="edge" id="e-admin-db" d="M1030,642 C1074,642 1090,468 1138,468"></path>
+      <path class="edge" id="e-payment-payos" d="M1030,408 C1170,408 1320,246 1420,246"></path>
+      <path class="edge" id="e-shipping-ghn" d="M1030,486 C1170,486 1320,330 1420,330"></path>
+      <path class="edge" id="e-auth-google" d="M1030,176 C1168,176 1318,168 1420,168"></path>
+      <path class="edge" id="e-mail" d="M1030,564 C1170,564 1320,412 1420,412"></path>
+      <path class="edge" id="e-monitoring" d="M1030,686 C1170,686 1320,604 1420,604"></path>
+      <path class="edge" id="e-docker" d="M1248,690 C1322,690 1360,690 1420,690"></path>
+      <path class="edge dash" id="e-seed-db" d="M1248,544 C1248,514 1248,500 1248,470"></path>
+
+      <text class="elabel" data-e="e-spa-api" x="552" y="236">Axios API</text>
+      <text class="elabel" data-e="e-api-auth" x="800" y="164">Sanctum</text>
+      <text class="elabel" data-e="e-api-commerce" x="800" y="318">checkout</text>
+      <text class="elabel" data-e="e-payment-payos" x="1262" y="282">webhook/đồng bộ</text>
+      <text class="elabel" data-e="e-shipping-ghn" x="1270" y="366">quote/vận đơn</text>
+      <text class="elabel" data-e="e-seed-db" x="1262" y="520">migrate + seed</text>
+
+      <!-- Người dùng. -->
+      <g class="node" data-k="customer">
+        <rect x="58" y="170" width="152" height="72"></rect>
+        <text class="name" x="134" y="201" text-anchor="middle">Khách hàng</text>
+        <text class="meta" x="134" y="220" text-anchor="middle">mua sắm, giỏ, đơn</text>
+      </g>
+      <g class="node" data-k="admin">
+        <rect x="58" y="302" width="152" height="72"></rect>
+        <text class="name" x="134" y="333" text-anchor="middle">Admin</text>
+        <text class="meta" x="134" y="352" text-anchor="middle">vận hành</text>
+      </g>
+      <g class="node" data-k="provider">
+        <rect x="58" y="504" width="152" height="72"></rect>
+        <text class="name" x="134" y="535" text-anchor="middle">Nhà cung cấp</text>
+        <text class="meta" x="134" y="554" text-anchor="middle">webhook</text>
+      </g>
+
+      <!-- React SPA. -->
+      <g class="node front" data-k="router">
+        <rect x="294" y="154" width="226" height="74"></rect>
+        <text class="name" x="407" y="184" text-anchor="middle">React Router</text>
+        <text class="meta" x="407" y="204" text-anchor="middle">cửa hàng, auth, admin</text>
+      </g>
+      <g class="node front" data-k="apiClient">
+        <rect x="294" y="244" width="226" height="74"></rect>
+        <text class="name" x="407" y="274" text-anchor="middle">Client API</text>
+        <text class="meta" x="407" y="294" text-anchor="middle">token + refresh</text>
+      </g>
+      <g class="node front" data-k="storefront">
+        <rect x="294" y="334" width="226" height="74"></rect>
+        <text class="name" x="407" y="364" text-anchor="middle">Cửa hàng</text>
+        <text class="meta" x="407" y="384" text-anchor="middle">trang chủ, sản phẩm, sale</text>
+      </g>
+      <g class="node front" data-k="customerPages">
+        <rect x="294" y="424" width="226" height="74"></rect>
+        <text class="name" x="407" y="454" text-anchor="middle">Trang khách hàng</text>
+        <text class="meta" x="407" y="474" text-anchor="middle">giỏ, checkout, đơn</text>
+      </g>
+      <g class="node front" data-k="supportPages">
+        <rect x="294" y="514" width="226" height="74"></rect>
+        <text class="name" x="407" y="544" text-anchor="middle">Hỗ trợ</text>
+        <text class="meta" x="407" y="564" text-anchor="middle">liên hệ, chính sách, chat</text>
+      </g>
+      <g class="node front" data-k="adminPages">
+        <rect x="294" y="604" width="226" height="86"></rect>
+        <text class="name" x="407" y="637" text-anchor="middle">Giao diện admin</text>
+        <text class="meta" x="407" y="657" text-anchor="middle">dashboard đến giám sát</text>
+      </g>
+
+      <!-- Laravel API. -->
+      <g class="node module" data-k="api">
+        <rect x="606" y="224" width="170" height="82"></rect>
+        <text class="name" x="691" y="257" text-anchor="middle">routes/api.php</text>
+        <text class="meta" x="691" y="277" text-anchor="middle">186 route API</text>
+      </g>
+      <g class="node module" data-k="auth">
+        <rect x="862" y="142" width="168" height="68"></rect>
+        <text class="name" x="946" y="171" text-anchor="middle">auth</text>
+        <text class="meta" x="946" y="190" text-anchor="middle">Sanctum + RBAC</text>
+      </g>
+      <g class="node module" data-k="catalog">
+        <rect x="862" y="220" width="168" height="68"></rect>
+        <text class="name" x="946" y="249" text-anchor="middle">catalog</text>
+        <text class="meta" x="946" y="268" text-anchor="middle">product/media/search</text>
+      </g>
+      <g class="node module" data-k="commerce">
+        <rect x="862" y="298" width="168" height="68"></rect>
+        <text class="name" x="946" y="327" text-anchor="middle">commerce</text>
+        <text class="meta" x="946" y="346" text-anchor="middle">giỏ/đơn/coupon</text>
+      </g>
+      <g class="node module" data-k="payment">
+        <rect x="862" y="376" width="168" height="68"></rect>
+        <text class="name" x="946" y="405" text-anchor="middle">payment</text>
+        <text class="meta" x="946" y="424" text-anchor="middle">PayOS + COD</text>
+      </g>
+      <g class="node module" data-k="shipping">
+        <rect x="862" y="454" width="168" height="68"></rect>
+        <text class="name" x="946" y="483" text-anchor="middle">shipping</text>
+        <text class="meta" x="946" y="502" text-anchor="middle">GHN + fallback</text>
+      </g>
+      <g class="node module" data-k="support">
+        <rect x="606" y="530" width="170" height="68"></rect>
+        <text class="name" x="691" y="559" text-anchor="middle">support</text>
+        <text class="meta" x="691" y="578" text-anchor="middle">mail/contact/chatbot</text>
+      </g>
+      <g class="node module" data-k="adminModule">
+        <rect x="862" y="610" width="168" height="68"></rect>
+        <text class="name" x="946" y="639" text-anchor="middle">admin</text>
+        <text class="meta" x="946" y="658" text-anchor="middle">ops + export</text>
+      </g>
+
+      <!-- Dữ liệu. -->
+      <g class="node data" data-k="postgres">
+        <rect x="1138" y="150" width="110" height="58"></rect>
+        <text class="name" x="1193" y="174" text-anchor="middle">Postgres</text>
+        <text class="meta" x="1193" y="193" text-anchor="middle">schema chính</text>
+      </g>
+      <g class="node data" data-k="runtime">
+        <rect x="1138" y="224" width="110" height="58"></rect>
+        <text class="name" x="1193" y="248" text-anchor="middle">DB runtime</text>
+        <text class="meta" x="1193" y="267" text-anchor="middle">cache, jobs</text>
+      </g>
+      <g class="node data" data-k="canonical">
+        <rect x="1138" y="298" width="110" height="58"></rect>
+        <text class="name" x="1193" y="322" text-anchor="middle">Migration</text>
+        <text class="meta" x="1193" y="341" text-anchor="middle">1 chuẩn</text>
+      </g>
+      <g class="node data" data-k="seeders">
+        <rect x="1138" y="372" width="110" height="58"></rect>
+        <text class="name" x="1193" y="396" text-anchor="middle">Seeder</text>
+        <text class="meta" x="1193" y="415" text-anchor="middle">100 sản phẩm</text>
+      </g>
+      <g class="node data" data-k="indexes">
+        <rect x="1138" y="446" width="110" height="58"></rect>
+        <text class="name" x="1193" y="470" text-anchor="middle">Index</text>
+        <text class="meta" x="1193" y="489" text-anchor="middle">pg_trgm</text>
+      </g>
+      <g class="node data" data-k="events">
+        <rect x="1138" y="520" width="110" height="58"></rect>
+        <text class="name" x="1193" y="544" text-anchor="middle">Sổ sự kiện</text>
+        <text class="meta" x="1193" y="563" text-anchor="middle">thanh toán/giao</text>
+      </g>
+      <g class="node data" data-k="dockerDb">
+        <rect x="1138" y="668" width="110" height="58"></rect>
+        <text class="name" x="1193" y="692" text-anchor="middle">Volume</text>
+        <text class="meta" x="1193" y="711" text-anchor="middle">DB + storage</text>
+      </g>
+
+      <!-- Ngoài hệ thống và vận hành. -->
+      <g class="node ext" data-k="google">
+        <rect x="1420" y="140" width="150" height="56"></rect>
+        <text class="name" x="1495" y="163" text-anchor="middle">Google OAuth</text>
+        <text class="meta" x="1495" y="182" text-anchor="middle">ID token</text>
+      </g>
+      <g class="node ext" data-k="payos">
+        <rect x="1420" y="218" width="150" height="56"></rect>
+        <text class="name" x="1495" y="241" text-anchor="middle">PayOS</text>
+        <text class="meta" x="1495" y="260" text-anchor="middle">thanh toán QR</text>
+      </g>
+      <g class="node ext" data-k="ghn">
+        <rect x="1420" y="302" width="150" height="56"></rect>
+        <text class="name" x="1495" y="325" text-anchor="middle">GHN</text>
+        <text class="meta" x="1495" y="344" text-anchor="middle">giao hàng</text>
+      </g>
+      <g class="node ext" data-k="mailpit">
+        <rect x="1420" y="386" width="150" height="56"></rect>
+        <text class="name" x="1495" y="409" text-anchor="middle">Mailpit</text>
+        <text class="meta" x="1495" y="428" text-anchor="middle">SMTP demo</text>
+      </g>
+      <g class="node ops" data-k="monitoring">
+        <rect x="1420" y="576" width="150" height="56"></rect>
+        <text class="name" x="1495" y="599" text-anchor="middle">Giám sát</text>
+        <text class="meta" x="1495" y="618" text-anchor="middle">Prom/Loki/Grafana</text>
+      </g>
+      <g class="node ops" data-k="docker">
+        <rect x="1420" y="660" width="150" height="56"></rect>
+        <text class="name" x="1495" y="683" text-anchor="middle">Docker</text>
+        <text class="meta" x="1495" y="702" text-anchor="middle">app, DB, mail</text>
+      </g>
+    </svg>
+
+    <div class="source">Sinh từ quét repo: routes, controllers, models, services, migration, seeders, React pages, Docker</div>
+
+    <div class="card" id="flowcap">
+      <div class="flow-name" id="flowName"></div>
+      <ol id="flowSteps"></ol>
+    </div>
+
+    <div class="card" id="detail">
+      <h2 id="detailTitle">Bấm một module</h2>
+      <div class="meta" id="detailMeta">chi tiết node</div>
+      <p id="detailBody">Dùng các chip trên cùng để làm nổi bật luồng nghiệp vụ. Mỗi node trong sơ đồ có thể bấm để hiện vai trò, tệp/module liên quan và điểm kỹ thuật cần nói khi trình bày.</p>
+    </div>
+  </div>
+
+<script>
+  /* === DETAIL CONTENT === */
+  const DETAIL = {
+    customer: {
+      title: "Khách hàng",
+      meta: "người mua hàng B2C",
+      body: "Duyệt trang chủ, tìm sản phẩm, xem chi tiết, thêm vào giỏ, checkout, theo dõi đơn, yêu thích, đánh giá và đọc chính sách."
+    },
+    admin: {
+      title: "Admin",
+      meta: "người vận hành cửa hàng",
+      body: "Dùng dashboard, tài khoản, sản phẩm, biến thể, danh mục, coupon, đánh giá, đơn hàng, shipping, size guide, giá sale, export và monitoring."
+    },
+    provider: {
+      title: "Webhook nhà cung cấp",
+      meta: "PayOS và GHN gọi ngược về hệ thống",
+      body: "PayOS gửi webhook thanh toán, GHN gửi webhook order-status/ticket. Laravel ghi sổ sự kiện và dùng idempotency key để tránh xử lý lặp."
+    },
+    router: {
+      title: "React Router",
+      meta: "resources/js/spa/main.jsx",
+      body: "Router phủ cửa hàng, auth, khách hàng và admin. Có alias tiếng Việt như /san-pham, /khuyen-mai, /lien-he, /chinh-sach, /ho-so."
+    },
+    apiClient: {
+      title: "Client API",
+      meta: "resources/js/spa/api.js",
+      body: "Client unwrap ApiResponse, lưu token, tự gọi /api/auth/refresh khi access token hết hạn và xóa dữ liệu auth khi logout."
+    },
+    storefront: {
+      title: "Cửa hàng",
+      meta: "Home, Products, ProductDetail, Sale, Wishlist",
+      body: "Giao diện mua sắm React/MUI có header search gọi /api/products/search-preview, thẻ sản phẩm và fallback ảnh SVG."
+    },
+    customerPages: {
+      title: "Trang khách hàng",
+      meta: "Cart, Checkout, Orders, Profile",
+      body: "Các trang cần đăng nhập được bọc AuthRoute, hỗ trợ giỏ hàng, checkout, đơn hàng, hồ sơ, địa chỉ và quản lý phiên đăng nhập."
+    },
+    supportPages: {
+      title: "Hỗ trợ",
+      meta: "Contact, Policies, Chatbot",
+      body: "Contact có throttle, policies là endpoint nội dung chính sách, chatbot có route /api/chatbot/messages và trang tư vấn React."
+    },
+    adminPages: {
+      title: "Giao diện admin",
+      meta: "các trang admin",
+      body: "AdminRoute kiểm tra role ADMIN. Các trang phủ dashboard, users, orders, products, categories, variants, coupons, reviews, size guides, sale prices và monitoring."
+    },
+    api: {
+      title: "Bề mặt API Laravel",
+      meta: "routes/api.php",
+      body: "API gồm catalog công khai, auth, khách hàng, callback/webhook nhà cung cấp và nhóm admin qua middleware auth:sanctum + role:admin."
+    },
+    auth: {
+      title: "module auth",
+      meta: "AuthController, RefreshTokenService, GoogleOAuthService",
+      body: "Đăng ký, đăng nhập, refresh token, Google OAuth, forgot/reset password, verify email, setup password, logout và revoke session."
+    },
+    catalog: {
+      title: "module catalog",
+      meta: "Product, ProductVariant, ProductImage, Category",
+      body: "Catalog gồm sản phẩm, biến thể, ảnh, thông số giày, surface, tag, size guide, review, wishlist, media fallback và search preview."
+    },
+    commerce: {
+      title: "module commerce",
+      meta: "Cart, OrderDetail, OrderItem, Coupon",
+      body: "Giỏ hàng, coupon theo phạm vi, checkout, snapshot order item, idempotency key, status guard và lịch sử đơn hàng cho khách hàng."
+    },
+    payment: {
+      title: "module payment",
+      meta: "PayOsService, PaymentController",
+      body: "Tạo liên kết thanh toán PayOS, COD, return-status, cancel, proactive sync, xác thực chữ ký webhook và ghi payment_events/payment_webhook_events."
+    },
+    shipping: {
+      title: "module shipping",
+      meta: "GhnClient, ShippingController, AdminShippingController",
+      body: "GHN lấy dữ liệu gốc, quote, preview/create/sync/cancel/return/delivery-again/update COD/print token và fallback local khi GHN chưa bật."
+    },
+    support: {
+      title: "module support/mail",
+      meta: "Contact, Policy, Chatbot, MailOutbox",
+      body: "Nhận liên hệ, trả chính sách, chatbot endpoint và mail outbox gửi reset/verify mail qua SMTP/Mailpit với dedupe key."
+    },
+    adminModule: {
+      title: "module admin",
+      meta: "12 controller admin",
+      body: "Quản trị account/session, dashboard, catalog, variants, coupons, reviews, orders, shipping, size guide, export và monitoring."
+    },
+    postgres: {
+      title: "PostgreSQL",
+      meta: "database chính",
+      body: "PostgreSQL 16 là nguồn dữ liệu chuẩn cho account, catalog, cart/order/payment/shipping, mail, cache, jobs và sessions."
+    },
+    runtime: {
+      title: "DB runtime Laravel",
+      meta: "cache, queue, session",
+      body: "Docker config dùng database session, database cache và database queue. Bảng jobs, failed_jobs, cache, sessions được tạo trong migration chuẩn."
+    },
+    canonical: {
+      title: "Migration chuẩn",
+      meta: "2026_06_07_000001_create_ohgiay_schema.php",
+      body: "Một migration tạo bảng framework, auth, catalog, commerce, provider, bảng vận hành, ràng buộc và index cuối cùng."
+    },
+    seeders: {
+      title: "Seeder",
+      meta: "6 seeder",
+      body: "Tạo roles/permissions, tài khoản demo, reference catalog, 100 sản phẩm, 502 biến thể, review, wishlist và cart mẫu."
+    },
+    indexes: {
+      title: "Index và constraints",
+      meta: "pg_trgm + partial unique",
+      body: "Schema dùng check constraints, partial unique indexes, idempotency key, review theo phạm vi đơn hàng và trigram index cho search preview."
+    },
+    events: {
+      title: "Sổ sự kiện nhà cung cấp",
+      meta: "payment_events, shipping_events",
+      body: "Payment và shipping có bảng sự kiện riêng, lưu raw payload/status để audit và chống xử lý trùng webhook."
+    },
+    dockerDb: {
+      title: "Docker volume",
+      meta: "postgres-data, app-storage",
+      body: "Docker Compose giữ dữ liệu PostgreSQL và storage Laravel qua named volume, giúp reset hoặc demo lại có kiểm soát."
+    },
+    google: {
+      title: "Google OAuth",
+      meta: "GOOGLE_CLIENT_ID, tokeninfo",
+      body: "Frontend/client gửi Google ID token vào /api/auth/google. Backend verify tokeninfo, link/create account bằng google_id hoặc email."
+    },
+    payos: {
+      title: "PayOS",
+      meta: "nhà cung cấp thanh toán online",
+      body: "PayOS tạo checkout URL/QR, ký HMAC, gửi webhook và hỗ trợ đồng bộ trạng thái thanh toán theo orderCode."
+    },
+    ghn: {
+      title: "GHN",
+      meta: "nhà cung cấp vận chuyển",
+      body: "GHN cung cấp tỉnh/huyện/xã, phí, leadtime, tạo vận đơn, cập nhật COD, in token và webhook trạng thái."
+    },
+    mailpit: {
+      title: "Mailpit",
+      meta: "SMTP demo trong Docker",
+      body: "Mailpit nhận mail từ Laravel ở cổng SMTP 1025 và có giao diện xem mail tại http://localhost:8025."
+    },
+    monitoring: {
+      title: "Giám sát",
+      meta: "Prometheus, Loki, Grafana tùy chọn",
+      body: "AdminMonitoringController đọc summary và LogQL qua cấu hình MONITORING_*; mặc định tắt để local chạy nhẹ."
+    },
+    docker: {
+      title: "Docker Compose",
+      meta: "app, postgres, mailpit",
+      body: "Compose build app, chờ PostgreSQL ready, chạy migrate/seed nếu RUN_SEEDERS=true và serve Laravel tại http://localhost:8000."
+    }
+  };
+
+  /* === FLOW HIGHLIGHTS === */
+  const FLOWS = {
+    purchase: {
+      name: "Luồng mua hàng - từ catalog đến đơn hàng",
+      nodes: ["customer", "router", "apiClient", "storefront", "customerPages", "api", "catalog", "commerce", "payment", "shipping", "postgres", "runtime", "events", "payos", "ghn", "mailpit"],
+      edges: ["e-customer-spa", "e-spa-api", "e-api-catalog", "e-api-commerce", "e-api-payment", "e-api-shipping", "e-catalog-db", "e-commerce-db", "e-provider-db", "e-payment-payos", "e-shipping-ghn", "e-mail"],
+      steps: [
+        "Khách hàng duyệt <code>Products</code>/<code>ProductDetail</code>, header search gọi search preview.",
+        "Giỏ hàng và checkout gọi API cart/order qua client API.",
+        "Module order tạo snapshot sản phẩm, áp coupon và ghi metadata payment/shipping.",
+        "PayOS hoặc COD xử lý thanh toán; GHN tạo vận đơn; mail outbox gửi thông báo."
+      ]
+    },
+    auth: {
+      name: "Luồng xác thực - account, token, session",
+      nodes: ["customer", "admin", "router", "apiClient", "api", "auth", "postgres", "runtime", "google", "adminModule"],
+      edges: ["e-customer-spa", "e-admin-spa", "e-spa-api", "e-api-auth", "e-auth-db", "e-auth-google", "e-admin-db"],
+      steps: [
+        "Login/register/google/reset/verify-email đi qua AuthController.",
+        "Sanctum phát access token; RefreshTokenService rotate token và quản lý phiên.",
+        "Auth tokens lưu hash cho reset password và email verification.",
+        "Admin có thể xem/thu hồi session của account qua AccountSessionController."
+      ]
+    },
+    admin: {
+      name: "Luồng quản trị - vận hành cửa hàng",
+      nodes: ["admin", "adminPages", "apiClient", "api", "adminModule", "catalog", "commerce", "payment", "shipping", "support", "postgres", "indexes", "events", "monitoring", "docker"],
+      edges: ["e-admin-spa", "e-spa-api", "e-api-admin", "e-api-catalog", "e-api-commerce", "e-api-payment", "e-api-shipping", "e-api-admin", "e-admin-db", "e-monitoring", "e-docker"],
+      steps: [
+        "AdminRoute yêu cầu role ADMIN trước khi vào dashboard hoặc trang vận hành.",
+        "Admin thao tác account, catalog, variant, coupon, order, review, size guide và giá sale.",
+        "Export controller xuất CSV tương thích Excel cho account/product/variant/dashboard.",
+        "Monitoring đọc Prometheus/Loki qua backend facade khi MONITORING_ENABLED=true."
+      ]
+    },
+    payShip: {
+      name: "Thanh toán + vận chuyển - ranh giới nhà cung cấp",
+      nodes: ["customer", "provider", "apiClient", "commerce", "payment", "shipping", "events", "payos", "ghn", "postgres", "mailpit"],
+      edges: ["e-provider-api", "e-spa-api", "e-api-commerce", "e-api-payment", "e-api-shipping", "e-provider-db", "e-payment-payos", "e-shipping-ghn", "e-mail"],
+      steps: [
+        "PaymentController init COD/PayOS, tạo hoặc đọc PaymentDetail theo order.",
+        "PayOsService ký HMAC, tạo checkout URL, xác thực webhook và đồng bộ trạng thái.",
+        "GhnClient tính phí, tạo vận đơn, hủy/hoàn/giao lại/cập nhật COD.",
+        "Webhook nhà cung cấp được ghi vào bảng sự kiện để audit và chống xử lý trùng."
+      ]
+    },
+    data: {
+      name: "Luồng dữ liệu - migration, seed, search",
+      nodes: ["canonical", "seeders", "indexes", "postgres", "runtime", "dockerDb", "catalog", "commerce", "auth", "events"],
+      edges: ["e-auth-db", "e-catalog-db", "e-commerce-db", "e-provider-db", "e-admin-db", "e-seed-db", "e-docker"],
+      steps: [
+        "Migration chuẩn tạo toàn bộ schema PostgreSQL từ auth đến provider/ops.",
+        "Seeder tạo role, account, catalog 100 sản phẩm, 502 biến thể và dữ liệu khách hàng.",
+        "pg_trgm index phục vụ search preview nhanh trên product/category/variant.",
+        "Runtime tables giữ cache, jobs, sessions và failed jobs theo chuẩn Laravel."
+      ]
+    },
+    ops: {
+      name: "Luồng vận hành - Docker, mail, monitoring",
+      nodes: ["docker", "dockerDb", "mailpit", "monitoring", "support", "adminModule", "postgres", "runtime", "canonical", "seeders"],
+      edges: ["e-docker", "e-mail", "e-monitoring", "e-seed-db", "e-admin-db"],
+      steps: [
+        "Docker Compose dựng app, PostgreSQL 16 và Mailpit.",
+        "Entrypoint chờ DB ready, chạy migrate và seed nếu bật RUN_SEEDERS.",
+        "Mailpit cho phép xem mail reset/verify khi demo local.",
+        "Monitoring proxy có thể đọc Prometheus/Loki/Grafana khi cấu hình đầy đủ."
+      ]
+    }
+  };
+
+  const stage = document.getElementById("stage");
+  const nodes = Array.from(document.querySelectorAll(".node"));
+  const edges = Array.from(document.querySelectorAll(".edge"));
+  const labels = Array.from(document.querySelectorAll(".elabel"));
+  const chips = Array.from(document.querySelectorAll(".chip"));
+  const detailTitle = document.getElementById("detailTitle");
+  const detailMeta = document.getElementById("detailMeta");
+  const detailBody = document.getElementById("detailBody");
+  const flowCap = document.getElementById("flowcap");
+  const flowName = document.getElementById("flowName");
+  const flowSteps = document.getElementById("flowSteps");
+
+  function setFlow(key) {
+    chips.forEach((chip) => chip.classList.toggle("on", chip.dataset.flow === key));
+    nodes.forEach((node) => node.classList.remove("lit"));
+    edges.forEach((edge) => edge.classList.remove("lit"));
+    labels.forEach((label) => label.classList.remove("lit"));
+
+    if (key === "all") {
+      stage.classList.remove("flowing");
+      flowCap.classList.remove("show");
+      return;
+    }
+
+    const flow = FLOWS[key];
+    stage.classList.add("flowing");
+    flow.nodes.forEach((id) => document.querySelector(`.node[data-k="${id}"]`)?.classList.add("lit"));
+    flow.edges.forEach((id) => document.getElementById(id)?.classList.add("lit"));
+    labels.forEach((label) => {
+      if (flow.edges.includes(label.dataset.e)) label.classList.add("lit");
+    });
+    flowName.textContent = flow.name;
+    flowSteps.innerHTML = flow.steps.map((step) => `<li>${step}</li>`).join("");
+    flowCap.classList.add("show");
+  }
+
+  chips.forEach((chip) => chip.addEventListener("click", () => setFlow(chip.dataset.flow)));
+
+  nodes.forEach((node) => {
+    node.addEventListener("click", () => {
+      nodes.forEach((n) => n.classList.remove("sel"));
+      node.classList.add("sel");
+      const data = DETAIL[node.dataset.k];
+      if (!data) return;
+      detailTitle.textContent = data.title;
+      detailMeta.textContent = data.meta;
+      detailBody.innerHTML = data.body;
+    });
+  });
+
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const dark = !document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("giayohoho-module-map-theme", dark ? "dark" : "light");
+  });
+</script>
+</body>
+</html>

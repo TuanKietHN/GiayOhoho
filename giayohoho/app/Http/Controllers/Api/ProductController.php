@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -115,6 +117,117 @@ class ProductController extends Controller
         ]);
     }
 
+    // GET /api/products/search-preview
+    public function searchPreview(Request $request)
+    {
+        $query = mb_strtolower(trim((string) $request->input('q', '')));
+        if (mb_strlen($query) < 2) {
+            return $this->ok(['items' => [], 'total' => 0]);
+        }
+
+        $limit = min(max((int) $request->input('limit', 6), 1), 10);
+        $like = "%{$query}%";
+
+        $base = DB::table('products as p')
+            ->leftJoin('categories as c', 'c.id', '=', 'p.category_id')
+            ->leftJoin('categories as pc', 'pc.id', '=', 'c.parent_id')
+            ->leftJoin('product_variants as pv', function ($join) {
+                $join->on('pv.product_id', '=', 'p.id')
+                    ->whereNull('pv.deleted_at');
+            })
+            ->whereNull('p.deleted_at')
+            ->where(function ($where) use ($like) {
+                $where->whereRaw('LOWER(p.name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(p.brand, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(c.name, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(pc.name, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(pv.sku, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(pv.color, \'\')) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(COALESCE(pv.size, \'\')) LIKE ?', [$like]);
+            });
+
+        $total = (clone $base)->count();
+        $rows = $base
+            ->select([
+                'p.id',
+                'p.name',
+                'p.slug',
+                'p.brand',
+                'c.name as category_name',
+                'pv.id as variant_id',
+                'pv.sku',
+                'pv.color',
+                'pv.size',
+                'pv.stock',
+                'p.base_price',
+                'p.original_price',
+            ])
+            ->selectRaw('p.base_price + COALESCE(pv.extra_price, 0) as final_price')
+            ->selectRaw("(
+                SELECT COALESCE(pi.object_name, pi.image_url)
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+                  AND pi.deleted_at IS NULL
+                ORDER BY CASE
+                    WHEN pv.id IS NOT NULL AND pi.product_variant_id = pv.id THEN 0
+                    WHEN pi.product_variant_id IS NULL THEN 1
+                    ELSE 2
+                END,
+                pi.is_primary DESC,
+                pi.sort_order ASC,
+                pi.id ASC
+                LIMIT 1
+            ) as thumbnail_source")
+            ->orderByRaw(
+                "CASE
+                    WHEN LOWER(COALESCE(pv.sku, '')) = ? THEN 0
+                    WHEN LOWER(COALESCE(pv.sku, '')) LIKE ? THEN 1
+                    WHEN LOWER(p.name) = ? THEN 2
+                    WHEN LOWER(p.name) LIKE ? THEN 3
+                    WHEN LOWER(COALESCE(p.brand, '')) = ? THEN 4
+                    WHEN LOWER(COALESCE(p.brand, '')) LIKE ? THEN 5
+                    WHEN LOWER(COALESCE(pv.color, '')) = ? THEN 6
+                    WHEN LOWER(COALESCE(pv.size, '')) = ? THEN 7
+                    WHEN LOWER(COALESCE(c.name, '')) LIKE ? OR LOWER(COALESCE(pc.name, '')) LIKE ? THEN 8
+                    ELSE 9
+                END",
+                [$query, "{$query}%", $query, "{$query}%", $query, "{$query}%", $query, $query, "{$query}%", "{$query}%"]
+            )
+            ->orderByRaw('CASE WHEN pv.stock > 0 THEN 0 ELSE 1 END')
+            ->orderByDesc('p.created_at')
+            ->orderByDesc('p.id')
+            ->orderBy('pv.id')
+            ->limit($limit)
+            ->get();
+
+        return $this->ok([
+            'items' => $rows->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'name' => $row->name,
+                'slug' => $row->slug,
+                'brand' => $row->brand,
+                'categoryName' => $row->category_name,
+                'category_name' => $row->category_name,
+                'variantId' => $row->variant_id ? (int) $row->variant_id : null,
+                'variant_id' => $row->variant_id ? (int) $row->variant_id : null,
+                'sku' => $row->sku,
+                'color' => $row->color,
+                'size' => $row->size,
+                'stock' => $row->stock === null ? null : (int) $row->stock,
+                'thumbnailUrl' => $this->thumbnailUrl($row->thumbnail_source),
+                'thumbnail_url' => $this->thumbnailUrl($row->thumbnail_source),
+                'basePrice' => (int) $row->base_price,
+                'base_price' => (int) $row->base_price,
+                'finalPrice' => (int) $row->final_price,
+                'final_price' => (int) $row->final_price,
+                'originalPrice' => $row->original_price === null ? null : (int) $row->original_price,
+                'original_price' => $row->original_price === null ? null : (int) $row->original_price,
+                'availability' => ((int) $row->stock) > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK',
+            ])->values(),
+            'total' => $total,
+        ]);
+    }
+
     // GET /api/products/{id}
     public function show($id)
     {
@@ -220,5 +333,17 @@ class ProductController extends Controller
             'tags' => $product->relationLoaded('tags') ? $product->tags->pluck('name')->values() : [],
             'availability' => $product->deleted_at ? 'DELETED' : ($variants->sum('stock') > 0 ? 'AVAILABLE' : 'OUT_OF_STOCK'),
         ];
+    }
+
+    private function thumbnailUrl(?string $source): ?string
+    {
+        if (! $source) {
+            return null;
+        }
+        if (Str::startsWith($source, ['http://', 'https://', '/'])) {
+            return $source;
+        }
+
+        return url('/api/media/'.ltrim($source, '/'));
     }
 }

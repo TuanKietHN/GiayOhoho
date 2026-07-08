@@ -211,7 +211,7 @@ class AuthController extends Controller
 
         $user = $googleOAuth->authenticate((string) $request->input('idToken'), $request);
         $token = $user->createToken('api_token')->plainTextToken;
-        $refresh = $refreshTokens->issue($user, $request);
+        $refresh = $refreshTokens->issue($user, $request, null, 'GOOGLE');
 
         return $this->withRefreshCookies(
             $this->ok($this->authPayload($user, $token, $refresh), 'Google login completed'),
@@ -358,28 +358,58 @@ class AuthController extends Controller
 
     public function sessions(Request $request, RefreshTokenService $refreshTokens)
     {
-        return $this->ok($refreshTokens->sessions($request->user()));
+        return $this->ok($refreshTokens->sessions($request->user(), $refreshTokens->tokenFromRequest($request)), 'Đã tải danh sách phiên đăng nhập');
     }
 
-    public function revokeSession(Request $request, string $deviceFingerprint, RefreshTokenService $refreshTokens)
+    public function revokeSession(Request $request, string $sessionId, RefreshTokenService $refreshTokens)
     {
-        $refreshTokens->revokeByFingerprint($request->user(), $deviceFingerprint);
-        if (ctype_digit($deviceFingerprint)) {
-            $request->user()->tokens()->where('id', (int) $deviceFingerprint)->delete();
+        $currentPlainToken = $refreshTokens->tokenFromRequest($request);
+        $currentSessions = $refreshTokens->sessions($request->user(), $currentPlainToken);
+        $currentSession = collect($currentSessions)->firstWhere('current', true);
+        $currentRevoked = $currentSession && (string) $currentSession['sessionId'] === $sessionId;
+
+        $refreshTokens->revokeBySessionIdentifier($request->user(), $sessionId);
+        if (ctype_digit($sessionId)) {
+            $request->user()->tokens()->where('id', (int) $sessionId)->delete();
         }
 
-        return $this->ok(null, 'Session revoked');
+        $response = $this->ok([
+            'sessionId' => $sessionId,
+            'currentSessionRevoked' => (bool) $currentRevoked,
+        ], 'Đã thu hồi phiên đăng nhập');
+
+        if ($currentRevoked) {
+            foreach ($refreshTokens->forgetCookies() as $cookie) {
+                $response->withCookie($cookie);
+            }
+            $request->user()?->currentAccessToken()?->delete();
+        }
+
+        return $response;
+    }
+
+    public function revokeOtherSessions(Request $request, RefreshTokenService $refreshTokens)
+    {
+        $refreshTokens->revokeOtherSessions($request->user(), $refreshTokens->tokenFromRequest($request));
+        $refreshTokens->revokeAllExceptCurrentAccessToken(
+            $request->user(),
+            $request->user()?->currentAccessToken()?->id
+        );
+
+        return response()->noContent();
     }
 
     public function revokeSessions(Request $request, RefreshTokenService $refreshTokens)
     {
-        $refreshTokens->revokeOtherSessions($request->user(), $refreshTokens->tokenFromRequest($request));
-        $currentTokenId = $request->user()?->currentAccessToken()?->id;
-        $request->user()->tokens()
-            ->when($currentTokenId, fn($query) => $query->where('id', '<>', $currentTokenId))
-            ->delete();
+        $refreshTokens->revokeAll($request->user());
+        $request->user()->tokens()->delete();
 
-        return $this->ok(null, 'All sessions revoked');
+        $response = response()->noContent();
+        foreach ($refreshTokens->forgetCookies() as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
     private function normalizeRegisterPayload(Request $request): void
@@ -416,6 +446,7 @@ class AuthController extends Controller
             'csrfToken' => $refresh['csrfToken'] ?? null,
             'refreshTokenExpiresAt' => isset($refresh['expiresAt']) ? $refresh['expiresAt']->toIso8601String() : null,
             'refreshTokenExpiresIn' => $refresh['expiresInSeconds'] ?? null,
+            'sessionId' => $refresh['sessionId'] ?? null,
             'account' => $this->accountDto($user),
             'requiresPasswordSetup' => $this->requiresPasswordSetup($user),
         ];
