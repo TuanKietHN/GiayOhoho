@@ -12,11 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            return $request->is('api/*') ? null : '/login';
+        });
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
         $middleware->appendToGroup('api', [\App\Http\Middleware\CorsMiddleware::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Trả về JSON 401 thay vì redirect tới route "login" (không tồn tại trong SPA thuần API)
+        $exceptions->shouldRenderJsonWhen(function (\Illuminate\Http\Request $request): bool {
+            return $request->is('api/*') || $request->expectsJson();
+        });
     })->create();

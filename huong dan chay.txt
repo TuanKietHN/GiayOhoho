@@ -1,0 +1,103 @@
+1. Kết quả kiểm tra toàn bộ dự án
+📁 Cấu trúc thư mục
+Thư mục mã nguồn thực tế: Toàn bộ ứng dụng Laravel + React nằm tại F:\GiayOhoho\giayohoho. Thư mục gốc F:\GiayOhoho chỉ chứa tài liệu thiết kế (docs/), ảnh demo và file README tổng quan cũ.
+Công nghệ thực tế:
+Backend: Laravel 12 (PHP 8.2+), Laravel Sanctum (179 API routes).
+Frontend: React 18, React Router v6, Material UI 5, Tailwind CSS, Vite 7 (đã được build sẵn vào public/build).
+Database: PostgreSQL 16 (dự án đã hoàn tất đợt refactor/migrate sang PostgreSQL với 1 migration duy nhất 2026_06_07_000001_create_ohgiay_schema.php, hỗ trợ partial index WHERE ... và check constraints).
+Tích hợp: Cổng thanh toán PayOS, đơn vị vận chuyển GHN (Giao Hàng Nhanh), Google OAuth, Mailpit (giả lập SMTP server để test gửi email).
+🔍 Tình trạng mã nguồn & Đã khắc phục
+Kiểm tra cú pháp PHP (PHP Lint): Toàn bộ 100% file PHP trong app/, routes/, database/, config/ đều hợp lệ, không có bất kỳ lỗi cú pháp nào.
+API Routes: Đã đăng ký đủ 179 endpoint (/api/products, /api/orders, /api/auth, /api/admin/*, ...).
+Frontend SPA: Bản build tĩnh của React đã có sẵn tại public/build/assets/, có thể chạy ngay với Laravel mà không bắt buộc phải bật Node.js dev server.
+Đã phát hiện và sửa 1 lỗi cấu hình trong .env.example:
+Dòng GHN_FROM_ADDRESS=Ha Noi có chứa khoảng trắng chưa được bọc ngoặc kép khiến thư viện phpdotenv báo lỗi cú pháp khi khởi tạo.
+Đã sửa thành: GHN_FROM_ADDRESS="Ha Noi".
+Khởi tạo môi trường .env:
+Đã tạo sẵn file .env từ .env.example.
+Đã sinh mã khoá ứng dụng APP_KEY thành công.
+Đã cấu hình SESSION_DRIVER=file và CACHE_STORE=file trong file .env local để ứng dụng không bị lỗi 500 khi chưa kết nối database.
+Đã mô phỏng gửi request tới /api/health và trang chủ /: Cả hai đều phản hồi HTTP 200 OK.
+2. Hướng dẫn chạy dự án
+
+Có 2 cách để chạy: Cách 1 dùng Docker (khuyến nghị số 1, nhanh và tự động hóa 100%) và Cách 2 chạy trực tiếp trên Windows (Local).
+
+🌟 CÁCH 1: Chạy tự động bằng Docker (Khuyến nghị)
+
+Toàn bộ database PostgreSQL 16, Mailpit và Laravel Web Server đã được đóng gói sẵn trong docker-compose.yml.
+
+Bật Docker Desktop: Mở ứng dụng Docker Desktop trên Windows và đợi trạng thái chuyển sang màu xanh (Engine running).
+
+Mở PowerShell và di chuyển vào thư mục mã nguồn:
+
+powershell
+cd F:\GiayOhoho\giayohoho
+
+Khởi chạy container:
+
+powershell
+docker compose up -d --build
+
+Container sẽ tự động:
+
+Khởi động PostgreSQL 16 và Mailpit.
+Tự động chạy migration (php artisan migrate --force).
+Tự động đổ dữ liệu mẫu (php artisan db:seed --force) với 100 mẫu giày thể thao, 502 biến thể và các tài khoản demo.
+Mở server tại cổng 8000.
+
+Truy cập hệ thống:
+
+🌐 Giao diện Website: http://localhost:8000
+🔍 Kiểm tra trạng thái API: http://localhost:8000/api/health
+📧 Xem hòm thư Mailpit (Test email): http://localhost:8025
+🗄️ PostgreSQL Port: localhost:5432 (User: giayohoho | Password: giayohoho | DB: giayohoho)
+
+Nếu muốn tắt container: docker compose down (hoặc docker compose down -v nếu muốn xoá sạch dữ liệu DB để tạo lại từ đầu).
+
+💻 CÁCH 2: Chạy trực tiếp trên Windows (Local không qua Docker App)
+
+Nếu bạn muốn chạy backend trực tiếp bằng PHP trên máy (C:\Dev\php\php.exe):
+
+Chuẩn bị Database PostgreSQL:
+
+Khởi chạy một container PostgreSQL nhanh gọn:
+powershell
+docker run --name giayohoho-db -e POSTGRES_DB=giayohoho -e POSTGRES_USER=giayohoho -e POSTGRES_PASSWORD=giayohoho -p 5432:5432 -d postgres:16-alpine
+
+(Hoặc nếu đã cài PostgreSQL trên Windows, hãy đảm bảo database giayohoho đã được tạo và thông tin khớp với file .env).
+
+Kích hoạt Extension PostgreSQL cho PHP:
+
+Mở file C:\Dev\php\php.ini, tìm và bỏ dấu chấm phẩy ; ở 2 dòng sau:
+ini
+extension=pdo_pgsql
+extension=pgsql
+
+Chạy Migration & Seed Data:
+
+powershell
+cd F:\GiayOhoho\giayohoho
+php artisan migrate:fresh --seed
+
+Khởi chạy Backend Server:
+
+powershell
+php artisan serve --port=8000
+
+Truy cập http://localhost:8000
+ để sử dụng website.
+
+(Tùy chọn) Chạy Frontend ở chế độ Hot-Reload khi lập trình:
+
+Nếu bạn muốn chỉnh sửa code React và xem kết quả trực tiếp ngay lập tức mà không cần build lại:
+powershell
+cd F:\GiayOhoho\giayohoho
+npm run dev
+3. Thông tin tài khoản đăng nhập có sẵn (Seed Data)
+
+Tất cả tài khoản mẫu đều dùng chung mật khẩu: 123456
+
+Vai trò	Email đăng nhập	Mật khẩu	Chức năng
+Quản trị viên (Admin)	admin@ohgiay.vn	123456	Quản lý sản phẩm, đơn hàng, người dùng tại /admin
+Khách hàng (Customer 1)	tuankiethn@ohgiay.vn	123456	Mua sắm, giỏ hàng, thanh toán, quản lý đơn cá nhân
+Khách hàng (Customer 2)	kiet@ohgiay.vn	123456	Mua sắm, giỏ hàng, thanh toán

@@ -16,7 +16,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-
 COPY . .
 RUN composer dump-autoload --optimize
 
-FROM php:8.3-cli-bookworm AS runtime
+FROM php:8.3.36-cli-bookworm AS runtime
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
