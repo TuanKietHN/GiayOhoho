@@ -25,6 +25,7 @@ import AdminVariants from "./pages/admin/AdminVariants"
 import AdminCoupons from "./pages/admin/AdminCoupons"
 import AdminReviews from "./pages/admin/AdminReviews"
 import { AdminMonitoring, AdminOrderDetail, AdminSalePrices, AdminSizeGuides } from "./pages/admin/AdminAdditionalPages"
+import HeaderSearch from "./components/HeaderSearch.jsx"
 import { ToastProvider } from "./ui/toast.jsx"
 import api, { clearAuthPayload } from "./api"
 import "../../css/styles.css"
@@ -54,6 +55,7 @@ function Nav({ me }) {
     <AppBar position="static">
       <Toolbar sx={{ gap: 0.5, overflowX: "auto" }}>
         <Button color="inherit" component={Link} to="/">GiàyOhoho</Button>
+        <HeaderSearch />
         <div style={{ flex: 1 }} />
         <Button color="inherit" component={Link} to="/products">Sản phẩm</Button>
         <Button color="inherit" component={Link} to="/sale">Khuyến mãi</Button>

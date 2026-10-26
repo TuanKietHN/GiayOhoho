@@ -17,7 +17,7 @@ Tat ca lenh Docker, Composer, NPM va Artisan ben duoi deu chay trong thu muc nay
 - Backend: PHP 8.2+, Laravel 12, Laravel Sanctum
 - Frontend: React 18, Vite 7, Material UI 5
 - Database: PostgreSQL 16
-- Tich hop: PayOS, GHN, Google OAuth ID token, refresh token luu DB
+- Tich hop: PayOS, GHN, Google OAuth ID token, refresh token/session management luu DB, monitoring proxy tuy chon
 - Docker: `Dockerfile`, `docker-compose.yml`, PostgreSQL, Mailpit
 
 ## Chay nhanh bang Docker
@@ -85,8 +85,9 @@ database/migrations/2026_06_07_000001_create_ohgiay_schema.php
 
 Migration nay tao cac bang chinh:
 
-- Auth/RBAC: `accounts`, `roles`, `account_roles`, `permissions`, `role_permissions`, `profiles`, `refresh_tokens`, `auth_tokens`
+- Auth/RBAC: `accounts`, `roles`, `account_roles`, `permissions`, `role_permissions`, `profiles`, `refresh_tokens`, `auth_tokens`, `account_login_events`
 - Catalog: `categories`, `products`, `product_variants`, `product_images`, `surfaces`, `tags`
+  - Search preview dung trigram indexes PostgreSQL tu `pg_trgm` cho `products`, `categories`, `product_variants`.
 - Commerce: `cart`, `cart_item`, `order_details`, `order_item`, `coupons`, `account_coupons`
   - `order_item` luu snapshot product/variant/image de lich su don hang khong bi thay doi khi admin sua hoac soft-delete catalog.
 - Providers: `payment_details`, `payment_events`, `payment_webhook_events`, `shipping_orders`, `shipping_events`
@@ -159,6 +160,18 @@ REFRESH_TOKEN_COOKIE_SAME_SITE=lax
 
 Login/register/google tra ve `token`, `refreshToken`, `csrfToken`. React API client se luu token va tu goi `/api/auth/refresh` khi access token het han.
 
+Quan ly phien dang nhap:
+
+```text
+GET    /api/auth/sessions
+DELETE /api/auth/sessions/revoke/others
+DELETE /api/auth/sessions/{sessionId}
+DELETE /api/auth/sessions
+GET    /api/admin/accounts/{accountId}/sessions
+DELETE /api/admin/accounts/{accountId}/sessions/{sessionId}
+DELETE /api/admin/accounts/{accountId}/sessions
+```
+
 Password reset va email verification dung token mot lan luu hash trong `auth_tokens`. Cau hinh:
 
 ```env
@@ -168,10 +181,31 @@ AUTH_PASSWORD_RESET_TTL_SECONDS=3600
 AUTH_EMAIL_VERIFICATION_TTL_SECONDS=86400
 ```
 
+### Monitoring
+
+Mac dinh monitoring tat de local chay nhe. Neu co Prometheus/Loki/Grafana, bat:
+
+```env
+MONITORING_ENABLED=true
+MONITORING_PROMETHEUS_URL=http://prometheus:9090
+MONITORING_LOKI_URL=http://loki:3100
+MONITORING_GRAFANA_URL=http://grafana:3000
+MONITORING_TIMEOUT_SECONDS=3
+```
+
+Admin routes:
+
+```text
+GET  /api/admin/monitoring/summary
+POST /api/admin/monitoring/logql
+```
+
 ## React routes da migrate
 
 - Storefront: `/`, `/products`, `/products/:slugOrId`, `/sale`, `/wishlist`
+- Header search da migrate sang React/MUI va dung `GET /api/products/search-preview`.
 - Customer: `/cart`, `/checkout`, `/orders`, `/orders/:id`, `/profile`
+  - `/profile` co quan ly phien dang nhap/refresh token.
 - Auth: `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/setup-password`
 - Support: `/contact`, `/policies`, `/ai-chatbot`
 - Payment: `/payment/payos-return`, `/payment/payos-cancel`
@@ -194,10 +228,10 @@ Get-ChildItem app,routes,database -Recurse -Filter *.php | ForEach-Object { php 
 
 ## API chinh
 
-- Public catalog: `GET /api/products`, `GET /api/products/{id}`, `GET /api/categories`
-- Auth: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/google`
+- Public catalog: `GET /api/products`, `GET /api/products/search-preview`, `GET /api/products/{id}`, `GET /api/categories`
+- Auth: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/google`, `GET/DELETE /api/auth/sessions`
 - Customer: `GET /api/cart`, `POST /api/orders`, `POST /api/payments`, `POST /api/shipping/quotes`
-- Admin: `GET /api/admin/dashboard`, `GET /api/admin/products`, `GET /api/admin/orders`
+- Admin: `GET /api/admin/dashboard`, `GET /api/admin/products`, `GET /api/admin/orders`, `GET/DELETE /api/admin/accounts/{accountId}/sessions`, `GET /api/admin/monitoring/summary`
 - Providers: `POST /api/payments/webhooks/payos`, `POST /api/shipping/ghn/webhooks/order-status`
 
 Postman collections cu van nam trong root du an, nhung schema/payload canonical la Laravel API hien tai.

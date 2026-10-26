@@ -108,16 +108,43 @@ export function AdminOrderDetail() {
 
 export function AdminMonitoring() {
   const grafana = (import.meta.env.VITE_GRAFANA_URL || "http://localhost:3001").replace(/\/$/, "")
+  const [summary, setSummary] = useState(null)
+  const [logQuery, setLogQuery] = useState('{app="giayohoho"}')
+  const [logResults, setLogResults] = useState([])
+  const [error, setError] = useState("")
   const links = [
     ["Application logs", `${grafana}/d/ohgiay-loki-logs/ohgiay-loki-logs`, 'app="giayohoho"'],
     ["System overview", `${grafana}/d/ohgiay-system-overview/ohgiay-system-overview`, "CPU, RAM, disk"],
     ["Loki Explore", `${grafana}/explore`, '{app="giayohoho"}'],
     ["Alert rules", `${grafana}/alerting/list`, "Grafana alerting"],
   ]
+
+  useEffect(() => {
+    api.get("/admin/monitoring/summary")
+      .then((response) => setSummary(response.data))
+      .catch((requestError) => setError(requestError.response?.data?.message || "Không thể tải monitoring summary"))
+  }, [])
+
+  const runLogQuery = async () => {
+    try {
+      const response = await api.post("/admin/monitoring/logql", { query: logQuery })
+      setLogResults(response.data.results || [])
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Không thể chạy LogQL")
+    }
+  }
+
   return (
     <Box><AdminHeading title="Monitoring" subtitle="Theo dõi log, mail outbox, PayOS và GHN." />
+      {error && <Alert severity="warning" sx={{ mb: 2 }}>{error}</Alert>}
+      {summary && (
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          {(summary.servicesStatus || []).map((service) => <Grid item xs={12} sm={4} key={service.name}><Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}><Typography fontWeight={900}>{service.name}</Typography><Chip size="small" color={service.status === "operational" ? "success" : service.status === "degraded" ? "warning" : "default"} label={service.status} sx={{ mt: 1 }} /><Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>Uptime score: {service.uptime}%</Typography></Paper></Grid>)}
+          {(summary.warnings || []).length > 0 && <Grid item xs={12}><Alert severity="info">{summary.warnings.join(" | ")}</Alert></Grid>}
+        </Grid>
+      )}
       <Grid container spacing={2}>{links.map(([title, href, text]) => <Grid item xs={12} sm={6} key={title}><Paper variant="outlined" sx={{ p: 3, height: "100%", borderRadius: 2 }}><Typography variant="h6" fontWeight={900}>{title}</Typography><Typography color="text.secondary" sx={{ my: 1 }}>{text}</Typography><Button href={href} target="_blank" endIcon={<OpenInNewIcon />}>Mở Grafana</Button></Paper></Grid>)}</Grid>
-      <Paper variant="outlined" sx={{ p: 3, mt: 3, borderRadius: 2 }}><Typography variant="h6" fontWeight={900}>LogQL hữu ích</Typography><Stack spacing={1} sx={{ mt: 2 }}>{['{app="giayohoho"}', '{app="giayohoho"} |~ "(?i)(payment|payos)"', '{app="giayohoho"} |~ "(?i)(ghn|shipping)"', '{app="giayohoho"} |~ "(?i)(mail_outbox|smtp)"'].map((query) => <Box component="code" key={query} sx={{ bgcolor: "grey.100", p: 1.5, borderRadius: 1, overflowWrap: "anywhere" }}>{query}</Box>)}</Stack></Paper>
+      <Paper variant="outlined" sx={{ p: 3, mt: 3, borderRadius: 2 }}><Typography variant="h6" fontWeight={900}>LogQL</Typography><Stack spacing={2} sx={{ mt: 2 }}><TextField label="Truy vấn LogQL" value={logQuery} onChange={(event) => setLogQuery(event.target.value)} fullWidth /><Button variant="contained" onClick={runLogQuery}>Chạy truy vấn</Button>{['{app="giayohoho"}', '{app="giayohoho"} |~ "(?i)(payment|payos)"', '{app="giayohoho"} |~ "(?i)(ghn|shipping)"', '{app="giayohoho"} |~ "(?i)(mail_outbox|smtp)"'].map((query) => <Box component="code" key={query} onClick={() => setLogQuery(query)} sx={{ bgcolor: "grey.100", p: 1.5, borderRadius: 1, overflowWrap: "anywhere", cursor: "pointer" }}>{query}</Box>)}{logResults.map((item, index) => <Paper key={`${item.timestamp}-${index}`} variant="outlined" sx={{ p: 1.5 }}><Typography variant="caption" color="text.secondary">{item.timestamp} • {item.service}</Typography><Typography sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{item.message}</Typography></Paper>)}</Stack></Paper>
     </Box>
   )
 }

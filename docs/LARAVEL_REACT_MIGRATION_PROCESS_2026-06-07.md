@@ -18,6 +18,7 @@ Mục tiêu: thực hiện plan migrate dự án Spring Boot + Vue hiện tại 
 | M7 - Docker/docs | Done | Đã thêm Dockerfile, docker-compose, entrypoint, `.env.example`, README và PayOS docs |
 | M8 - Backend parity audit | Done with caveat | Đã đối chiếu thêm Spring controllers và port tiếp media, review moderation/order-scope, admin account detail/delete/restore, PayOS sync, CSV Excel-compatible admin endpoints |
 | M9 - Spring/Vue parity refresh | Done with caveat | Audit lại source đến Flyway V27, hoàn thiện backend contract chính và port các route/page Vue còn thiếu sang React Material UI |
+| M10 - 2026-07 parity continuation | Done with caveat | Port tiếp Flyway V28-V30, search preview, session management/admin session routes, monitoring routes và React/MUI header/profile/admin session UI |
 
 ## Nhật ký thực hiện
 
@@ -145,6 +146,40 @@ Mục tiêu: thực hiện plan migrate dự án Spring Boot + Vue hiện tại 
    - Playwright MCP không chạy được do Windows sandbox `CreateProcessAsUserW failed: 5`; chưa có screenshot browser tự động trong lượt này.
    - Chưa chạy `migrate:fresh --seed` trên PostgreSQL container thật.
 
+### 2026-07-07
+
+1. Audit lại source hiện tại sau lần migrate trước:
+   - Source Spring/Flyway đã có thêm `V28__product_search_preview_indexes.sql`, `V29__account_session_management.sql`, `V30__product_variant_search_indexes.sql`.
+   - Vue frontend vẫn đang dùng `/products/search-preview`, `/auth/sessions/revoke/others`, `/admin/accounts/{accountId}/sessions` và admin monitoring endpoints.
+2. Hoàn thiện backend Laravel parity:
+   - Cập nhật migration canonical duy nhất với `pg_trgm`, trigram indexes cho products/categories/product_variants.
+   - Bổ sung `account_login_events.actor_account_id`, `account_login_events.session_id` và indexes audit theo actor/session.
+   - Mở rộng `refresh_tokens` DB-backed với `session_id`, `device_id`, `auth_provider`, `session_created_at`, `last_seen_at`, `rotation_claim_id`.
+   - Thêm permission `ACCOUNT_SESSION_VIEW`, `ACCOUNT_SESSION_REVOKE` vào `RolePermissionSeeder`.
+   - Thêm `GET /api/products/search-preview`.
+   - Sửa auth session semantics: `DELETE /api/auth/sessions/revoke/others` thu hồi phiên khác, `DELETE /api/auth/sessions` thu hồi toàn bộ.
+   - Thêm admin account session routes: list, revoke one, revoke all.
+   - Thêm admin monitoring routes: `GET /api/admin/monitoring/summary`, `POST /api/admin/monitoring/logql`.
+3. Hoàn thiện frontend React/MUI:
+   - Thêm `HeaderSearch.jsx` bằng MUI, debounce và gọi search preview giống Vue.
+   - Trang Products nhận `?q=` từ header và dùng `ProductCard` MUI có ảnh thật/fallback SVG.
+   - Trang Profile thêm khu vực quản lý phiên đăng nhập: xem, revoke một phiên, revoke phiên khác, revoke tất cả.
+   - Trang Admin Users chuyển sang MUI table, sửa hiển thị roles dạng string và nối admin session management.
+   - Trang Admin Monitoring đọc summary từ backend và có form chạy LogQL.
+4. Docker/config:
+   - Thêm biến `MONITORING_*` vào `.env.example`, `config/services.php`, `docker-compose.yml`.
+5. Verification:
+   - `php -l` pass cho các file PHP vừa đổi.
+   - `composer install --no-interaction --prefer-dist` pass và tạo `vendor`.
+   - `php artisan route:list --path=api` pass, hiện có 186 API routes.
+   - Route mới đã xuất hiện: product search preview, auth revoke others, admin account sessions, admin monitoring.
+   - `npm ci` pass; npm audit vẫn báo 14 vulnerabilities trong dependency tree hiện tại.
+   - `npm run build` pass; Vite vẫn cảnh báo main chunk lớn hơn 500 kB.
+   - `docker compose config` pass.
+6. Caveat:
+   - `php artisan migrate --pretend --force --no-interaction` trên PHP local vẫn không chạy vì chưa có `.env`, Laravel fallback sqlite và PHP local thiếu PDO sqlite driver.
+   - Chưa chạy `docker compose up --build` / `php artisan migrate:fresh --seed` trên PostgreSQL container thật trong lượt này.
+
 ## Quyết định kỹ thuật
 
 1. Source canonical là dự án hiện tại tại root `F:\WebBanGiayTLU`.
@@ -167,3 +202,4 @@ Không còn lệnh đang chạy trong lượt này. Bước xác minh tiếp the
 6. Composer package `sepay/sepay-pg` còn trong `composer.json`/`composer.lock` do lệnh remove bị Composer audit chặn bởi advisory của package Laravel/PHPUnit đang lock. Runtime SePay đã được gỡ.
 7. Frontend production bundle đang có chunk chính trên 500 kB; build pass nhưng nên lazy-load route trước production.
 8. NPM audit hiện báo 14 vulnerabilities; chưa tự động chạy `npm audit fix` để tránh nâng dependency ngoài kiểm soát.
+9. PHP local chưa chạy được migration pretend do thiếu `.env` và PDO sqlite; Docker/PostgreSQL là đường chạy migration chính.

@@ -106,4 +106,12 @@ return [
             'cookie_path' => env('REFRESH_TOKEN_COOKIE_PATH', '/'),
         ],
     ],
+
+    'monitoring' => [
+        'enabled' => filter_var(env('MONITORING_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'prometheus_url' => env('MONITORING_PROMETHEUS_URL', 'http://localhost:9090'),
+        'loki_url' => env('MONITORING_LOKI_URL', 'http://localhost:3100'),
+        'grafana_url' => env('MONITORING_GRAFANA_URL', 'http://localhost:3001'),
+        'timeout_seconds' => (int) env('MONITORING_TIMEOUT_SECONDS', 3),
+    ],
 ];

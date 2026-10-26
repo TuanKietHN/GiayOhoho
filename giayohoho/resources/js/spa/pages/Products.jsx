@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import api from "../api"
 import Slider from "../ui/slider.jsx"
+import ProductCard from "../components/ProductCard.jsx"
 
 export default function Products() {
   const [items, setItems] = useState([])
@@ -20,12 +21,14 @@ export default function Products() {
   const [pronation, setPronation] = useState("")
   const [waterproof, setWaterproof] = useState("")
   const [sort, setSort] = useState("")
+  const [searchParams] = useSearchParams()
 
-  const load = async () => {
+  const load = async (overrides = {}) => {
     setLoading(true)
     try {
       const params = {}
-      if (q) params.q = q
+      const effectiveQ = overrides.q ?? q
+      if (effectiveQ) params.q = effectiveQ
       if (brand) params.brand = [brand]
       if (gender) params.gender = [gender]
       if (minPrice) params.min_price = Number(minPrice)
@@ -38,7 +41,7 @@ export default function Products() {
       if (waterproof) params.is_waterproof = waterproof === "true"
       if (sort) params.sort = sort
       const res = await api.get("/products", { params })
-      setItems(res.data.data || res.data)
+      setItems(res.data.content || res.data.data || res.data)
     } catch (e) {
       console.error("Error loading products:", e)
     }
@@ -46,8 +49,10 @@ export default function Products() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    const urlQuery = searchParams.get("q") || ""
+    setQ(urlQuery)
+    load({ q: urlQuery })
+  }, [searchParams])
 
   return (
     <div>
@@ -137,62 +142,7 @@ export default function Products() {
           }}
         >
           {items.map((p) => (
-            <Link key={p.id} to={`/products/${p.id}`} style={{ textDecoration: "none" }}>
-              <div
-                style={{
-                  backgroundColor: "var(--neutral-white)",
-                  borderRadius: "var(--radius-lg)",
-                  overflow: "hidden",
-                  boxShadow: "var(--shadow-sm)",
-                  transition: "box-shadow 0.3s ease, transform 0.3s ease",
-                  cursor: "pointer",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "var(--shadow-lg)"
-                  e.currentTarget.style.transform = "translateY(-4px)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "var(--shadow-sm)"
-                  e.currentTarget.style.transform = "translateY(0)"
-                }}
-              >
-                {/* Image Placeholder */}
-                <div
-                  style={{
-                    backgroundColor: "var(--neutral-gray)",
-                    height: "250px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--neutral-medium)",
-                    fontSize: "3rem",
-                  }}
-                >
-                  👟
-                </div>
-
-                {/* Content */}
-                <div style={{ padding: "var(--spacing-lg)", flex: 1, display: "flex", flexDirection: "column" }}>
-                  <h3 style={{ marginBottom: "var(--spacing-sm)", color: "var(--primary-dark)" }}>{p.name}</h3>
-                  <p style={{ color: "var(--neutral-medium)", fontSize: "0.9rem", marginBottom: "var(--spacing-sm)" }}>
-                    {p.brand} • {p.gender}
-                  </p>
-                  <p
-                    style={{
-                      marginTop: "auto",
-                      fontSize: "1.25rem",
-                      fontWeight: 700,
-                      color: "var(--primary-accent)",
-                    }}
-                  >
-                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p.base_price)}
-                  </p>
-                </div>
-              </div>
-            </Link>
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       )}

@@ -7,9 +7,16 @@ import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
 import CircularProgress from "@mui/material/CircularProgress"
+import Chip from "@mui/material/Chip"
 import Divider from "@mui/material/Divider"
 import Paper from "@mui/material/Paper"
 import Stack from "@mui/material/Stack"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import TextField from "@mui/material/TextField"
 import Typography from "@mui/material/Typography"
 
@@ -159,6 +166,8 @@ export function Profile() {
   const [profile, setProfile] = useState(null)
   const [form, setForm] = useState({ firstName: "", lastName: "", phoneNumber: "", birthOfDate: "" })
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" })
+  const [sessions, setSessions] = useState([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
   const navigate = useNavigate()
@@ -178,7 +187,19 @@ export function Profile() {
     })
   })
 
-  useEffect(() => { load() }, [])
+  const loadSessions = async () => {
+    setSessionsLoading(true)
+    try {
+      const response = await api.get("/auth/sessions")
+      setSessions(response.data || [])
+    } catch (error) {
+      toast.show(error.response?.data?.message || "Không thể tải phiên đăng nhập", "error")
+    } finally {
+      setSessionsLoading(false)
+    }
+  }
+
+  useEffect(() => { load(); loadSessions() }, [])
 
   const save = async (event) => {
     event.preventDefault()
@@ -219,6 +240,41 @@ export function Profile() {
     }
   }
 
+  const revokeSession = async (session) => {
+    try {
+      const response = await api.delete(`/auth/sessions/${encodeURIComponent(session.sessionId || session.id)}`)
+      if (response.data?.currentSessionRevoked) {
+        clearAuthPayload()
+        navigate("/login?reason=session_revoked", { replace: true })
+        return
+      }
+      await loadSessions()
+      toast.show("Đã thu hồi phiên đăng nhập", "success")
+    } catch (error) {
+      toast.show(error.response?.data?.message || "Không thể thu hồi phiên", "error")
+    }
+  }
+
+  const revokeOtherSessions = async () => {
+    try {
+      await api.delete("/auth/sessions/revoke/others")
+      await loadSessions()
+      toast.show("Đã thu hồi các phiên khác", "success")
+    } catch (error) {
+      toast.show(error.response?.data?.message || "Không thể thu hồi phiên khác", "error")
+    }
+  }
+
+  const revokeAllSessions = async () => {
+    try {
+      await api.delete("/auth/sessions")
+      clearAuthPayload()
+      navigate("/login?reason=all_sessions_revoked", { replace: true })
+    } catch (error) {
+      toast.show(error.response?.data?.message || "Không thể thu hồi toàn bộ phiên", "error")
+    }
+  }
+
   if (!profile) return <Box sx={{ py: 8, textAlign: "center" }}><CircularProgress /></Box>
 
   return (
@@ -251,6 +307,53 @@ export function Profile() {
           <TextField label="Mật khẩu mới" type="password" required value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} />
           <Button type="submit" variant="outlined">Cập nhật mật khẩu</Button>
         </Stack>
+        <Divider sx={{ my: 3 }} />
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ mb: 2 }}>
+          <Box>
+            <Typography variant="h6" fontWeight={900}>Phiên đăng nhập</Typography>
+            <Typography variant="body2" color="text.secondary">Quản lý các thiết bị đang giữ refresh token của tài khoản.</Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button size="small" onClick={loadSessions} disabled={sessionsLoading}>Làm mới</Button>
+            <Button size="small" variant="outlined" onClick={revokeOtherSessions}>Thu hồi phiên khác</Button>
+            <Button size="small" color="error" variant="outlined" onClick={revokeAllSessions}>Thu hồi tất cả</Button>
+          </Stack>
+        </Stack>
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Thiết bị</TableCell>
+                <TableCell>IP</TableCell>
+                <TableCell>Lần cuối</TableCell>
+                <TableCell>Hết hạn</TableCell>
+                <TableCell align="right" />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sessions.map((session) => (
+                <TableRow key={session.sessionId || session.id}>
+                  <TableCell>
+                    <Typography fontWeight={800}>{session.deviceName || "Thiết bị không xác định"}</Typography>
+                    <Typography variant="caption" color="text.secondary">{session.browser} • {session.operatingSystem} • {session.authProvider}</Typography>
+                    {session.current && <Chip size="small" color="success" label="Hiện tại" sx={{ ml: 1 }} />}
+                  </TableCell>
+                  <TableCell>{session.ipAddress || "-"}</TableCell>
+                  <TableCell>{session.lastSeenAt || session.createdAt || "-"}</TableCell>
+                  <TableCell>{session.expiresAt || "-"}</TableCell>
+                  <TableCell align="right">
+                    <Button size="small" color="error" onClick={() => revokeSession(session)}>Thu hồi</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {sessions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">{sessionsLoading ? "Đang tải..." : "Không có phiên đang hoạt động."}</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
     </Box>
   )

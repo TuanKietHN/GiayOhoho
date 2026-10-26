@@ -30,6 +30,8 @@ use App\Http\Controllers\Api\Admin\ExportController as AdminExportController;
 use App\Http\Controllers\Api\Admin\ShippingController as AdminShippingController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\ProductSizeGuideController as AdminProductSizeGuideController;
+use App\Http\Controllers\Api\Admin\AccountSessionController as AdminAccountSessionController;
+use App\Http\Controllers\Api\Admin\MonitoringController as AdminMonitoringController;
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
@@ -39,6 +41,7 @@ Route::get('/health', function () {
 
 // Danh sách sản phẩm
 Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/search-preview', [ProductController::class, 'searchPreview']);
 Route::get('/products/by-slug/{slug}', [ProductController::class, 'showBySlug']);
 Route::get('/products/media/{slug}/{view}.svg', [ProductMediaController::class, 'show']);
 
@@ -75,7 +78,8 @@ Route::prefix('auth')->group(function () {
         Route::post('/change-password', [AuthController::class, 'changePassword']);
         Route::post('/setup-password', [AuthController::class, 'setupPassword']);
         Route::get('/sessions', [AuthController::class, 'sessions']);
-        Route::delete('/sessions/{deviceFingerprint}', [AuthController::class, 'revokeSession']);
+        Route::delete('/sessions/revoke/others', [AuthController::class, 'revokeOtherSessions']);
+        Route::delete('/sessions/{sessionId}', [AuthController::class, 'revokeSession']);
         Route::delete('/sessions', [AuthController::class, 'revokeSessions']);
 
         Route::get('/addresses', [AddressController::class, 'index']);
@@ -161,6 +165,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::patch('/accounts/{id}/status', [AdminUserController::class, 'status']);
     Route::delete('/accounts/{id}', [AdminUserController::class, 'destroy']);
     Route::patch('/accounts/{id}/restore', [AdminUserController::class, 'restore']);
+    Route::get('/accounts/{accountId}/sessions', [AdminAccountSessionController::class, 'index']);
+    Route::delete('/accounts/{accountId}/sessions/{sessionId}', [AdminAccountSessionController::class, 'destroy']);
+    Route::delete('/accounts/{accountId}/sessions', [AdminAccountSessionController::class, 'destroyAll']);
+
+    Route::get('/monitoring/summary', [AdminMonitoringController::class, 'summary']);
+    Route::post('/monitoring/logql', [AdminMonitoringController::class, 'logql']);
+
     Route::get('/orders', [AdminOrderController::class, 'index']);
     Route::get('/orders/{id}', [AdminOrderController::class, 'show']);
     Route::post('/orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
